@@ -1,0 +1,19 @@
+sources_priorities: ['files', 'cmd', 'env']
+files:
+  - /etc/the_conf.yml
+  - ~/.config/the_conf.json
+
+values:
+  - example:
+      type: str  # default
+      read_only: false  # default
+      among: ['choice 1', 'choice 2', 'choice 3']
+      help_txt: some text to display and contextualize the value
+      create_txt: some text to be prompted when generating the conf file
+      default: 'choice 1'
+  - nested:
+    - value:
+        type: int
+        required: true  # default
+    - other_value:
+        type: bool
