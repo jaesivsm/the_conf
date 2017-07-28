@@ -1,9 +1,9 @@
-sources_priorities: ['files', 'cmd', 'env']
-files:
+source_order: ['files', 'cmd', 'env']
+config_files:
   - /etc/the_conf.yml
   - ~/.config/the_conf.json
 
-values:
+parameters:
   - example:
       type: str  # default
       read_only: false  # default
