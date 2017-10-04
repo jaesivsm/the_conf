@@ -19,6 +19,6 @@ setup(name='the_conf',
       maintainer="François Schmidts",
       maintainer_email="francois@schmidts.fr",
       packages=['the_conf'],
-      url='https://github.com/jaes/the_conf/',
+      url='https://github.com/jaesivsm/the_conf/',
       install_requires=['PyYAML==3.12'],
       )
