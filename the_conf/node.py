@@ -47,7 +47,7 @@ class ConfNode:
                     " value for %r is not among the selectable values (%r)" % (
                         path, settings.get('among')))
         if has_default and settings['required']:
-            raise AssertionError(
+            raise ValueError(
                     "%r required parameter can't have default value" % path)
         self._parameters[name] = settings
 
@@ -69,7 +69,6 @@ class ConfNode:
         if name.startswith('_'):
             return super().__getattribute__(name)
         if name in self._parameters and self._parameters[name].get('default'):
-            has_attr = False
             try:  # Trying to get attr, if AttributeError => is absent
                 super().__getattribute__(name)
             except AttributeError:
@@ -82,8 +81,8 @@ class ConfNode:
         if key not in self._parameters:
             raise ValueError('%r is not a registered conf option' % self._path)
         if 'among' in self._parameters[key]:
-            assert value in self._parameters[key]['among'], (
-                "%r: value %r isn't in %r" % (
+            if value not in self._parameters[key]['among']:
+                raise ValueError("%r: value %r isn't in %r" % (
                     self._path, value, self._parameters[key]['among']))
         if 'type' in self._parameters[key]:
             try:

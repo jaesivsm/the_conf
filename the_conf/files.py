@@ -22,9 +22,9 @@ def read(*paths):
                 logger.error("File %r ignored: unknown type (%s)", path, ext)
                 continue
         except FileNotFoundError:
-            logger.warn('%r not found', path)
+            logger.warning('%r not found', path)
         except PermissionError:
-            logger.warn('%r: no right to read', path)
+            logger.warning('%r: no right to read', path)
 
 
 def _extract_value(config, path):

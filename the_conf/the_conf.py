@@ -21,7 +21,7 @@ class TheConf(ConfNode):
         self._main_conf_file = None
 
         super().__init__()
-        for path, ext, meta_config in read(*paths):
+        for _, _, meta_config in read(*paths):
             if self._source_order is DEFAULT_ORDER:
                 self._source_order \
                         = meta_config.get('source_order', DEFAULT_ORDER)
@@ -32,7 +32,9 @@ class TheConf(ConfNode):
         self.load()
 
     def load_files(self):
-        for config_file, ext, config in read(*self._config_files):
+        if self._config_files is None:
+            return
+        for config_file, _, config in read(*self._config_files):
             paths = self._get_all_parameters_path()
             for path, value in extract_values(paths, config, config_file):
                 self._set_to_path(path, value)
