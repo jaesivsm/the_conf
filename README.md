@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/jaesivsm/the_conf.svg?branch=master)](https://travis-ci.org/jaesivsm/the_conf) [![Coverage Status](https://coveralls.io/repos/github/jaesivsm/the_conf/badge.svg?branch=master)](https://coveralls.io/github/jaesivsm/the_conf?branch=master)
+
 From [this](http://sametmax.com/les-plus-grosses-roues-du-monde/)
 
     Une bonne lib de conf doit:
