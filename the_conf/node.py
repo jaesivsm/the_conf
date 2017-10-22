@@ -23,15 +23,21 @@ class ConfNode:
                     getattr(self, name)._load_parameters(*value)
                 else:
                     self._load_parameter(name, value)
-                self._children.append(name)
+                if name not in self._children:
+                    self._children.append(name)
 
     def _load_parameter(self, name, settings):
         if name in self._parameters:
             logger.debug('ignoring')
             return
-        assert 'type' in settings
-        # FIXME something smarter that'd allow custom type
-        settings['type'] = TYPE_MAPPING[settings['type']]
+        # something smarter that'd allow custom type
+        if settings.get('type') in TYPE_MAPPING:
+            settings['type'] = TYPE_MAPPING[settings['type']]
+        elif settings.get('type'):
+            logger.warning('unknown type %r', settings['type'])
+            settings['type'] = str
+        else:
+            settings['type'] = str
         has_default = bool(settings.get('default'))
         has_among = bool(settings.get('among'))
         settings['required'] = bool(settings.get('required'))
@@ -51,7 +57,7 @@ class ConfNode:
                     "%r required parameter can't have default value" % path)
         self._parameters[name] = settings
 
-    def _set_to_path(self, path, value):
+    def _set_to_path(self, path, value, overwrite=False):
         """Will set the value to the provided path. Local node if path length
         is one, a child node if path length is more that one.
 
@@ -59,6 +65,8 @@ class ConfNode:
         value: the value to set
         """
         if len(path) == 1:
+            if not overwrite and hasattr(self, path[0]):
+                return
             return setattr(self, path[0], value)
         return getattr(self, path[0])._set_to_path(path[1:], value)
 

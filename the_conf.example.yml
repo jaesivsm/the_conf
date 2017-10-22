@@ -7,10 +7,14 @@ parameters:
   - example:
       type: str  # default
       read_only: false  # default
+      no_cmd: false  # default
+      no_env: false  # default
       among: ['choice 1', 'choice 2', 'choice 3']
       help_txt: some text to display and contextualize the value
       create_txt: some text to be prompted when generating the conf file
       default: 'choice 1'
+  - config:
+      cmd_line_opt: --stuff  # override behavior
   - nested:
     - value:
         type: int
@@ -20,6 +24,7 @@ parameters:
   - int_value:
       type: int
       default: 1
+      read_only: true
 #  - list_opt:
 #      type: list_of
 #      sub_type:
