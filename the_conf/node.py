@@ -61,6 +61,9 @@ class ConfNode:
         if has_default and settings['required']:
             raise ValueError(
                     "%r required parameter can't have default value" % path)
+
+        if 'type' in settings and 'default' in settings:
+            settings['default'] = settings['type'](settings['default'])
         self._parameters[name] = settings
 
     def _set_to_path(self, path, value, overwrite=False):

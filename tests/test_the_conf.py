@@ -40,6 +40,19 @@ class TestTheConfObj(unittest.TestCase):
         tc.option = 1
         self.assertEqual('1', tc.option)
 
+    def test_casting(self):
+        metaconf = {'parameters': [
+                        {'option1': {'type': str, 'default': 'a'}},
+                        {'option2': {'type': int, 'default': '1'}},
+                    ],
+                    'config_files': []}
+        tc = TheConf(metaconf, cmd_line_opts=[])
+        self.assertEqual('a', tc.option1)
+        self.assertEqual(1, tc.option2)
+        tc.option1, tc.option2 = 'b', '2'
+        self.assertEqual('b', tc.option1)
+        self.assertEqual(2, tc.option2)
+
     def test_trigger_error_w_required(self):
         metaconf = {'parameters': [
                         {'option': {'type': str, 'required': True}}],
@@ -48,3 +61,13 @@ class TestTheConfObj(unittest.TestCase):
                 TheConf, metaconf, cmd_line_opts=[])
         tc = TheConf(metaconf, cmd_line_opts=['--option=stuff'])
         self.assertEqual('stuff', tc.option)
+
+    def test_extract_config(self):
+        metaconf = {'parameters': [{'option': [
+                        {'option': {'type': str, 'default': 'a'}}]}],
+                    'config_files': []}
+        tc = TheConf(metaconf, cmd_line_opts=[])
+        self.assertEqual('a', tc.option.option)
+        self.assertEqual({}, tc.extract_config())
+        tc.option.option = 'b'
+        self.assertEqual({'option': {'option': 'b'}}, tc.extract_config())

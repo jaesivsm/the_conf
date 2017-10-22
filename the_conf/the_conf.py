@@ -71,20 +71,23 @@ class TheConf(node.ConfNode):
                 raise ValueError('loading finished and %r is not set'
                         % '.'.join(path))
 
-    def write(self, config_file=None):
-        if config_file is None and not self._config_files:
-            raise ValueError('no config file to write in')
+    def extract_config(self):
         config = {}
         for paths, value, param in self._get_path_val_param():
             if value is node.NoValue:
                 continue
+            if 'default' in param and value == param['default']:
+                continue
             curr_config = config
-            for path in paths:
-                if path != paths[-1]:
-                    if path not in curr_config:
-                        curr_config[path] = {}
-                        curr_config = curr_config[path]
-                else:
-                    curr_config[path] = value
+            for path in paths[:-1]:
+                curr_config[path] = {}
+                curr_config = curr_config[path]
+            curr_config[paths[-1]] = value
+        return config
 
-        files.write(config, config_file or self._config_files[0])
+    def write(self, config_file=None):
+        if config_file is None and not self._config_files:
+            raise ValueError('no config file to write in')
+
+        files.write(self.extract_config(),
+                config_file or self._config_files[0])
