@@ -33,6 +33,8 @@ class ConfNode:
         # something smarter that'd allow custom type
         if settings.get('type') in TYPE_MAPPING:
             settings['type'] = TYPE_MAPPING[settings['type']]
+        elif isinstance(settings.get('type'), type):
+            pass
         elif settings.get('type'):
             logger.warning('unknown type %r', settings['type'])
             settings['type'] = str
@@ -93,12 +95,7 @@ class ConfNode:
                 raise ValueError("%r: value %r isn't in %r" % (
                     self._path, value, self._parameters[key]['among']))
         if 'type' in self._parameters[key]:
-            try:
-                value = self._parameters[key]['type'](value)
-            except Exception:
-                logger.error("%r: value %s can't be casted to the good type",
-                             self._path, value)
-                raise
+            value = self._parameters[key]['type'](value)
         return super().__setattr__(key, value)
 
     @property

@@ -1,15 +1,17 @@
 import unittest
-import the_conf
+from the_conf import TheConf
 
 
 class TestTheConfObj(unittest.TestCase):
 
+    def setUp(self):
+        self.conf = 'the_conf.example.yml'
+
     def tearDown(self):
-        the_conf.TheConf._TheConf__instance = None
+        TheConf._TheConf__instance = None
 
     def test_conf_loading(self):
-        tc = the_conf.TheConf('the_conf.example.yml',
-                cmd_line_opts=['--stuff=stuff'])
+        tc = TheConf(self.conf, cmd_line_opts=['--stuff=stuff'])
         self.assertEqual('choice 1', tc.example)
         self.assertRaises(ValueError,
                 setattr, tc, 'example', 'wrong value')
@@ -18,15 +20,22 @@ class TestTheConfObj(unittest.TestCase):
                 getattr, tc.nested, 'value')
         self.assertRaises(ValueError,
                 setattr, tc.nested, 'value', 'wrong value')
-        self.assertEqual(None, setattr(tc.nested, 'value', 2))
+        tc.nested.value = 2
+        self.assertEqual(2, tc.nested.value)
         self.assertEqual(1, tc.int_value)
 
     def test_conf_reloading_no_overwrite(self):
-        tc = the_conf.TheConf('the_conf.example.yml', cmd_line_opts=[])
+        tc = TheConf(self.conf, cmd_line_opts=[])
         self.assertRaises(AttributeError, getattr, tc, 'config')
-        tc = the_conf.TheConf('the_conf.example.yml',
-                cmd_line_opts=['--stuff=the conf'])
+        tc = TheConf(self.conf, cmd_line_opts=['--stuff=the conf'])
         self.assertEqual('the conf', tc.config)
-        tc = the_conf.TheConf('the_conf.example.yml',
-                cmd_line_opts=['--stuff=wrong'])
+        tc = TheConf(self.conf, cmd_line_opts=['--stuff=wrong'])
         self.assertEqual('the conf', tc.config)
+
+    def test_conf_from_obj(self):
+        metaconf = {'parameters': [{'option': {'type': str, 'default': 'a'}}],
+                    'config_files': []}
+        tc = TheConf(metaconf, cmd_line_opts=[])
+        self.assertEqual('a', tc.option)
+        tc.option = 1
+        self.assertEqual('1', tc.option)

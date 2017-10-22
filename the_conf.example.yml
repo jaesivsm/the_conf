@@ -1,7 +1,5 @@
 source_order: ['files', 'cmd', 'env']
-config_files:
-  - /etc/the_conf.yml
-  - ~/.config/the_conf.json
+config_files: []
 
 parameters:
   - example:

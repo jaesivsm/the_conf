@@ -14,21 +14,22 @@ class TheConf(node.ConfNode):
             cls.__instance = object.__new__(cls)
         return cls.__instance
 
-    def __init__(self, *paths, cmd_line_opts=None):
+    def __init__(self, *metaconfs, cmd_line_opts=None):
         self._source_order = DEFAULT_ORDER
         self._config_files = None
         self._main_conf_file = None
         self._cmd_line_opts = cmd_line_opts
 
         super().__init__()
-        for _, _, meta_config in files.read(*paths):
+        for mc in metaconfs:
+            if isinstance(mc, str):
+                _, _, mc = next(files.read(mc))
             if self._source_order is DEFAULT_ORDER:
-                self._source_order \
-                        = meta_config.get('source_order', DEFAULT_ORDER)
+                self._source_order = mc.get('source_order', DEFAULT_ORDER)
             if self._config_files is None:
-                self._config_files = meta_config.get('config_files', None)
+                self._config_files = mc.get('config_files', None)
 
-            self._load_parameters(*meta_config['parameters'])
+            self._load_parameters(*mc['parameters'])
         self.load()
 
     def load_files(self):
