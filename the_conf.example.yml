@@ -16,7 +16,7 @@ parameters:
   - nested:
     - value:
         type: int
-        required: true  # default
+        required: false  # default
     - other_value:
         type: bool
   - int_value:

@@ -66,6 +66,11 @@ class TheConf(node.ConfNode):
             else:
                 raise Exception('unknown order %r')
 
+        for path, value, param in self._get_path_val_param():
+            if value is node.NoValue and param.get('required'):
+                raise ValueError('loading finished and %r is not set'
+                        % '.'.join(path))
+
     def write(self, config_file=None):
         if config_file is None and not self._config_files:
             raise ValueError('no config file to write in')

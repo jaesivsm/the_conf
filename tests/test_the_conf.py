@@ -39,3 +39,12 @@ class TestTheConfObj(unittest.TestCase):
         self.assertEqual('a', tc.option)
         tc.option = 1
         self.assertEqual('1', tc.option)
+
+    def test_trigger_error_w_required(self):
+        metaconf = {'parameters': [
+                        {'option': {'type': str, 'required': True}}],
+                    'config_files': []}
+        self.assertRaises(ValueError,
+                TheConf, metaconf, cmd_line_opts=[])
+        tc = TheConf(metaconf, cmd_line_opts=['--option=stuff'])
+        self.assertEqual('stuff', tc.option)
