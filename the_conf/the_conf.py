@@ -36,7 +36,7 @@ class TheConf(node.ConfNode):
         if self._config_files is None:
             return
         for config_file, _, config in files.read(*self._config_files):
-            paths = self._get_all_parameters_path()
+            paths = (path for path, _, _ in self._get_path_val_param())
             for path, value in files.extract_values(
                     paths, config, config_file):
                 self._set_to_path(path, value)
@@ -47,7 +47,7 @@ class TheConf(node.ConfNode):
         config_file = getattr(cmd_line_args, command_line.CONFIG_OPT_DEST)
         if config_file:
             self._config_files.insert(0, config_file)
-        for path in self._get_all_parameters_path():
+        for path, _, _ in self._get_path_val_param():
             value = getattr(cmd_line_args, command_line.path_to_dest(path))
             if value is not None:
                 self._set_to_path(path, value)
@@ -65,3 +65,21 @@ class TheConf(node.ConfNode):
                 self.load_env()
             else:
                 raise Exception('unknown order %r')
+
+    def write(self, config_file=None):
+        if config_file is None and not self._config_files:
+            raise ValueError('no config file to write in')
+        config = {}
+        for paths, value, param in self._get_path_val_param():
+            if value is node.NoValue:
+                continue
+            curr_config = config
+            for path in paths:
+                if path != paths[-1]:
+                    if path not in curr_config:
+                        curr_config[path] = {}
+                        curr_config = curr_config[path]
+                else:
+                    curr_config[path] = value
+
+        files.write(config, config_file or self._config_files[0])

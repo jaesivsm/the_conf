@@ -42,3 +42,17 @@ def extract_values(paths, config, config_file):
             yield path, _extract_value(config, path)
         except ValueError:
             logger.info('%s not found in %r', '.'.join(path), config_file)
+
+
+def write(config, path):
+    path = abspath(expanduser(path.strip()))
+    ext = splitext(path)[1][1:]
+    if ext in {'yml', 'yaml'}:
+        with open(path, 'w') as fp:
+            yaml.dump(config, fp)
+    elif ext == 'json':
+        with open(path, 'w') as fp:
+            json.dump(config, fp)
+    else:
+        raise ValueError("couldn't make out file type, conf file path should "
+                         "end with either yml, yaml or json")

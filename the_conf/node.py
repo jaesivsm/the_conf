@@ -5,6 +5,10 @@ TYPE_MAPPING = {'int': int, 'str': str, 'list': list, 'dict': dict,
 logger = logging.getLogger(__name__)
 
 
+class NoValue:
+    pass
+
+
 class ConfNode:
 
     def __init__(self, parent=None, name='', *parameters):
@@ -70,7 +74,8 @@ class ConfNode:
             if not overwrite and hasattr(self, path[0]):
                 return
             return setattr(self, path[0], value)
-        return getattr(self, path[0])._set_to_path(path[1:], value)
+        return getattr(self, path[0])._set_to_path(path[1:], value,
+                                                   overwrite=overwrite)
 
     def __getattribute__(self, name):
         """Return a parameter of the node if this one is defined.
@@ -104,9 +109,10 @@ class ConfNode:
             return []
         return self._parent._path + [self._name]
 
-    def _get_all_parameters_path(self):
+    def _get_path_val_param(self):
         for name in self._children:
             if isinstance(getattr(self, name, None), ConfNode):
-                yield from getattr(self, name)._get_all_parameters_path()
+                yield from getattr(self, name)._get_path_val_param()
             else:
-                yield self._path + [name]
+                yield self._path + [name], getattr(self, name, NoValue), \
+                        self._parameters[name]
