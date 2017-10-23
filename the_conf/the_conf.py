@@ -1,6 +1,6 @@
 import logging
 
-from the_conf import files, command_line, node
+from the_conf import files, command_line, node, interractive
 
 logger = logging.getLogger(__name__)
 DEFAULT_ORDER = 'cmd', 'files', 'env'
@@ -14,11 +14,12 @@ class TheConf(node.ConfNode):
             cls.__instance = object.__new__(cls)
         return cls.__instance
 
-    def __init__(self, *metaconfs, cmd_line_opts=None):
+    def __init__(self, *metaconfs, prompt_values=False, cmd_line_opts=None):
         self._source_order = DEFAULT_ORDER
         self._config_files = None
         self._main_conf_file = None
         self._cmd_line_opts = cmd_line_opts
+        self._prompt_values = prompt_values
 
         super().__init__()
         for mc in metaconfs:
@@ -66,6 +67,9 @@ class TheConf(node.ConfNode):
             else:
                 raise Exception('unknown order %r')
 
+        if self._prompt_values:
+            self.prompt_values(False, False, False, False)
+
         for path, value, param in self._get_path_val_param():
             if value is node.NoValue and param.get('required'):
                 raise ValueError('loading finished and %r is not set'
@@ -91,3 +95,25 @@ class TheConf(node.ConfNode):
 
         files.write(self.extract_config(),
                 config_file or self._config_files[0])
+
+    def prompt_values(self, only_empty=True, only_no_default=True,
+            only_required=True, only_w_help=True):
+        for path, value, param in self._get_path_val_param():
+            if only_w_help and not param.get('help_txt'):
+                continue
+            if only_required and not param.get('required'):
+                continue
+            if only_no_default and not param.get('default'):
+                continue
+            if only_empty and value is not node.NoValue:
+                continue
+            if param.get('type') is bool:
+                self._set_to_path(path, interractive.ask_bool(
+                    param.get('help_txt', '.'.join(path)),
+                    default=param.get('default'),
+                    required=param.get('required')))
+            else:
+                self._set_to_path(path, interractive.ask(
+                    param.get('help_txt', '.'.join(path)),
+                    choices=param.get('among'), default=param.get('default'),
+                    required=param.get('required'), cast=param.get('type')))
