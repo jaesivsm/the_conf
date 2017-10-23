@@ -13,13 +13,10 @@ class TestTheConfObj(unittest.TestCase):
     def test_conf_loading(self):
         tc = TheConf(self.conf, cmd_line_opts=['--stuff=stuff'])
         self.assertEqual('choice 1', tc.example)
-        self.assertRaises(ValueError,
-                setattr, tc, 'example', 'wrong value')
+        self.assertRaises(ValueError, setattr, tc, 'example', 'wrong value')
         self.assertEqual(None, setattr(tc, 'example', 'choice 2'))
-        self.assertRaises(AttributeError,
-                getattr, tc.nested, 'value')
-        self.assertRaises(ValueError,
-                setattr, tc.nested, 'value', 'wrong value')
+        self.assertRaises(AttributeError, getattr, tc.nested, 'value')
+        self.assertRaises(ValueError, setattr, tc.nested, 'value', 'wrong val')
         tc.nested.value = 2
         self.assertEqual(2, tc.nested.value)
         self.assertEqual(1, tc.int_value)
@@ -41,10 +38,8 @@ class TestTheConfObj(unittest.TestCase):
         self.assertEqual('1', tc.option)
 
     def test_casting(self):
-        metaconf = {'parameters': [
-                        {'option1': {'type': str, 'default': 'a'}},
-                        {'option2': {'type': int, 'default': '1'}},
-                    ],
+        metaconf = {'parameters': [{'option1': {'type': str, 'default': 'a'}},
+                                   {'option2': {'type': int, 'default': '1'}}],
                     'config_files': []}
         tc = TheConf(metaconf, cmd_line_opts=[])
         self.assertEqual('a', tc.option1)
@@ -53,12 +48,22 @@ class TestTheConfObj(unittest.TestCase):
         self.assertEqual('b', tc.option1)
         self.assertEqual(2, tc.option2)
 
+    def test_read_only(self):
+        tc = TheConf({'parameters': [
+                            {'option1': {'default': 'a', 'read_only': True}},
+                            {'option2': {'read_only': True}},
+                      ],
+                      'config_files': []}, cmd_line_opts=['--option2=stuff'])
+        self.assertEqual('a', tc.option1)
+        self.assertEqual('stuff', tc.option2)
+        self.assertRaises(AttributeError, setattr, tc, 'option1', 'read only')
+        self.assertRaises(AttributeError, setattr, tc, 'option2', 'read only')
+
     def test_trigger_error_w_required(self):
         metaconf = {'parameters': [
                         {'option': {'type': str, 'required': True}}],
                     'config_files': []}
-        self.assertRaises(ValueError,
-                TheConf, metaconf, cmd_line_opts=[])
+        self.assertRaises(ValueError, TheConf, metaconf, cmd_line_opts=[])
         tc = TheConf(metaconf, cmd_line_opts=['--option=stuff'])
         self.assertEqual('stuff', tc.option)
 
