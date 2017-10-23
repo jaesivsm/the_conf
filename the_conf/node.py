@@ -76,6 +76,11 @@ class ConfNode:
         if len(path) == 1:
             if not overwrite and hasattr(self, path[0]):
                 return
+            if 'read_only' in self._parameters[path[0]]:
+                read_only = self._parameters[path[0]].pop('read_only')
+                res = setattr(self, path[0], value)
+                self._parameters[path[0]]['read_only'] = read_only
+                return res
             return setattr(self, path[0], value)
         return getattr(self, path[0])._set_to_path(path[1:], value,
                                                    overwrite=overwrite)
@@ -98,10 +103,12 @@ class ConfNode:
             return super().__setattr__(key, value)
         if key not in self._parameters:
             raise ValueError('%r is not a registered conf option' % self._path)
+        if self._parameters[key].get('read_only'):
+            raise AttributeError('attribute is in read only mode')
         if 'among' in self._parameters[key]:
             if value not in self._parameters[key]['among']:
                 raise ValueError("%r: value %r isn't in %r" % (
-                    self._path, value, self._parameters[key]['among']))
+                        self._path, value, self._parameters[key]['among']))
         if 'type' in self._parameters[key]:
             value = self._parameters[key]['type'](value)
         return super().__setattr__(key, value)
