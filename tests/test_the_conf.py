@@ -14,7 +14,8 @@ class TestTheConfObj(unittest.TestCase):
         tc = TheConf(self.conf, cmd_line_opts=['--stuff=stuff'])
         self.assertEqual('choice 1', tc.example)
         self.assertRaises(ValueError, setattr, tc, 'example', 'wrong value')
-        self.assertEqual(None, setattr(tc, 'example', 'choice 2'))
+        tc.example = 'choice 2'
+        self.assertEqual('choice 2', tc.example)
         self.assertRaises(AttributeError, getattr, tc.nested, 'value')
         self.assertRaises(ValueError, setattr, tc.nested, 'value', 'wrong val')
         tc.nested.value = 2
@@ -28,6 +29,20 @@ class TestTheConfObj(unittest.TestCase):
         self.assertEqual('the conf', tc.config)
         tc = TheConf(self.conf, cmd_line_opts=['--stuff=wrong'])
         self.assertEqual('the conf', tc.config)
+
+    def test_loading_from_env(self):
+        metaconf = {'parameters': [{'option': {'type': str}}],
+                    'source_order': ['env'],
+                    'config_files': []}
+        tc = TheConf(metaconf, environ={'STUFF': 'true', 'OPTION': 'value'})
+        self.assertEqual('value', tc.option)
+
+    def test_loading_nested_from_env(self):
+        metaconf = {'parameters': [{'option': [{'option': {'type': str}}]}],
+                    'source_order': ['env']}
+        tc = TheConf(metaconf,
+                environ={'OPTION_OPTION': 'value', 'OPTION': 'stuff'})
+        self.assertEqual('value', tc.option.option)
 
     def test_conf_from_obj(self):
         metaconf = {'parameters': [{'option': {'type': str, 'default': 'a'}}],
@@ -73,6 +88,6 @@ class TestTheConfObj(unittest.TestCase):
                     'config_files': []}
         tc = TheConf(metaconf, cmd_line_opts=[])
         self.assertEqual('a', tc.option.option)
-        self.assertEqual({}, tc.extract_config())
+        self.assertEqual({}, tc._extract_config())
         tc.option.option = 'b'
-        self.assertEqual({'option': {'option': 'b'}}, tc.extract_config())
+        self.assertEqual({'option': {'option': 'b'}}, tc._extract_config())

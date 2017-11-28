@@ -11,11 +11,11 @@ def path_to_dest(path):
     return '_'.join(path)
 
 
-def get_parser(tc):
+def get_parser(path_n_params, config_file_cmd_line):
     parser = ArgumentParser()
-    parser.add_argument('-C', '--config', dest=CONFIG_OPT_DEST,
+    parser.add_argument(*config_file_cmd_line, dest=CONFIG_OPT_DEST,
             help='set main conf file to load configuration from')
-    for path, _, param in tc._get_path_val_param():
+    for path, _, param in path_n_params:
         parser_kw = {}
 
         if param.get('no_cmd'):
@@ -36,3 +36,13 @@ def get_parser(tc):
 
         parser.add_argument(flag, dest=path_to_dest(path), **parser_kw)
     return parser
+
+
+def yield_values_from_cmd(path_val_params, opts, config_file_cmd_line):
+    parser = get_parser(path_val_params, config_file_cmd_line)
+    cmd_line_args = parser.parse_args(opts)
+    yield getattr(cmd_line_args, CONFIG_OPT_DEST)
+    for path, _, _ in path_val_params:
+        value = getattr(cmd_line_args, path_to_dest(path))
+        if value is not None:
+            yield path, value

@@ -1,9 +1,12 @@
+import os
 import logging
 
 from the_conf import files, command_line, node, interractive
 
 logger = logging.getLogger(__name__)
 DEFAULT_ORDER = 'cmd', 'files', 'env'
+DEFAULT_CONFIG_FILE_CMD_LINE = '-C', '--config'
+DEFAULT_CONFIG_FILE_ENVIRON = ('CONFIG_FILE',)
 
 
 class TheConf(node.ConfNode):
@@ -14,11 +17,15 @@ class TheConf(node.ConfNode):
             cls.__instance = object.__new__(cls)
         return cls.__instance
 
-    def __init__(self, *metaconfs, prompt_values=False, cmd_line_opts=None):
+    def __init__(self, *metaconfs, prompt_values=False,
+                 cmd_line_opts=None, environ=None):
         self._source_order = DEFAULT_ORDER
         self._config_files = None
+        self._config_file_cmd_line = DEFAULT_CONFIG_FILE_CMD_LINE
+        self._config_file_environ = DEFAULT_CONFIG_FILE_ENVIRON
         self._main_conf_file = None
         self._cmd_line_opts = cmd_line_opts
+        self._environ = environ
         self._prompt_values = prompt_values
 
         super().__init__()
@@ -27,43 +34,56 @@ class TheConf(node.ConfNode):
                 _, _, mc = next(files.read(mc))
             if self._source_order is DEFAULT_ORDER:
                 self._source_order = mc.get('source_order', DEFAULT_ORDER)
+            if self._config_file_cmd_line is DEFAULT_CONFIG_FILE_CMD_LINE:
+                self._config_file_cmd_line = mc.get('config_file_cmd_line',
+                        DEFAULT_CONFIG_FILE_CMD_LINE)
+            if self._config_file_cmd_line is DEFAULT_CONFIG_FILE_ENVIRON:
+                self._config_file_environ = mc.get('config_file_environ',
+                        DEFAULT_CONFIG_FILE_ENVIRON)
             if self._config_files is None:
                 self._config_files = mc.get('config_files', None)
 
             self._load_parameters(*mc['parameters'])
         self.load()
 
-    def load_files(self):
+    def _load_files(self):
         if self._config_files is None:
             return
-        for config_file, _, config in files.read(*self._config_files):
+        for conf_file, _, config in files.read(*self._config_files):
             paths = (path for path, _, _ in self._get_path_val_param())
-            for path, value in files.extract_values(
-                    paths, config, config_file):
+            for path, value in files.extract_values(paths, config, conf_file):
                 self._set_to_path(path, value)
 
-    def load_cmd(self, opts=None):
-        parser = command_line.get_parser(self)
-        cmd_line_args = parser.parse_args(opts)
-        config_file = getattr(cmd_line_args, command_line.CONFIG_OPT_DEST)
+    def _load_cmd(self, opts=None):
+        gen = command_line.yield_values_from_cmd(
+                list(self._get_path_val_param()), self._cmd_line_opts,
+                self._config_file_cmd_line)
+        config_file = next(gen)
         if config_file:
             self._config_files.insert(0, config_file)
-        for path, _, _ in self._get_path_val_param():
-            value = getattr(cmd_line_args, command_line.path_to_dest(path))
-            if value is not None:
-                self._set_to_path(path, value)
 
-    def load_env(self):
-        pass
+        for path, value in gen:
+            self._set_to_path(path, value)
+
+    def _load_env(self, environ=None):
+        if environ is None:
+            environ = os.environ
+        for config_env_key in self._config_file_environ:
+            if config_env_key in environ:
+                self._config_files.insert(0, environ[config_env_key])
+        for path, _, _ in self._get_path_val_param():
+            env_key = '_'.join(map(str.upper, path))
+            if env_key in environ:
+                self._set_to_path(path, environ[env_key])
 
     def load(self):
         for order in self._source_order:
             if order == 'files':
-                self.load_files()
+                self._load_files()
             elif order == 'cmd':
-                self.load_cmd(self._cmd_line_opts)
+                self._load_cmd(self._cmd_line_opts)
             elif order == 'env':
-                self.load_env()
+                self._load_env(self._environ)
             else:
                 raise Exception('unknown order %r')
 
@@ -75,7 +95,7 @@ class TheConf(node.ConfNode):
                 raise ValueError('loading finished and %r is not set'
                         % '.'.join(path))
 
-    def extract_config(self):
+    def _extract_config(self):
         config = {}
         for paths, value, param in self._get_path_val_param():
             if value is node.NoValue:
@@ -93,7 +113,7 @@ class TheConf(node.ConfNode):
         if config_file is None and not self._config_files:
             raise ValueError('no config file to write in')
 
-        files.write(self.extract_config(),
+        files.write(self._extract_config(),
                 config_file or self._config_files[0])
 
     def prompt_values(self, only_empty=True, only_no_default=True,
