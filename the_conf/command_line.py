@@ -40,7 +40,7 @@ def get_parser(path_n_params, config_file_cmd_line):
 
 def yield_values_from_cmd(path_val_params, opts, config_file_cmd_line):
     parser = get_parser(path_val_params, config_file_cmd_line)
-    cmd_line_args = parser.parse_args(opts)
+    cmd_line_args, _ = parser.parse_known_args(opts)
     yield getattr(cmd_line_args, CONFIG_OPT_DEST)
     for path, _, _ in path_val_params:
         value = getattr(cmd_line_args, path_to_dest(path))
