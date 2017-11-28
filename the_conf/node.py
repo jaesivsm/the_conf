@@ -91,7 +91,7 @@ class ConfNode:
         """
         if name.startswith('_'):
             return super().__getattribute__(name)
-        if name in self._parameters and self._parameters[name].get('default'):
+        if name in self._parameters and 'default' in self._parameters[name]:
             try:  # Trying to get attr, if AttributeError => is absent
                 super().__getattribute__(name)
             except AttributeError:

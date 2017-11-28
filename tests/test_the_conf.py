@@ -91,3 +91,11 @@ class TestTheConfObj(unittest.TestCase):
         self.assertEqual({}, tc._extract_config())
         tc.option.option = 'b'
         self.assertEqual({'option': {'option': 'b'}}, tc._extract_config())
+
+    def test_false_default(self):
+        metaconf = {'parameters': [
+                        {'option': {'type': bool, 'default': False}}],
+                    'source_order': ['env'],
+                    'config_files': []}
+        tc = TheConf(metaconf, environ={})
+        self.assertFalse(tc.option)
