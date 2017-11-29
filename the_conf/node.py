@@ -74,7 +74,12 @@ class ConfNode:
         value: the value to set
         """
         if len(path) == 1:
-            if not overwrite and hasattr(self, path[0]):
+            try:
+                super().__getattribute__(path[0])
+                has_attr = True
+            except AttributeError:
+                has_attr = False
+            if not overwrite and has_attr:
                 return
             if 'read_only' in self._parameters[path[0]]:
                 read_only = self._parameters[path[0]].pop('read_only')
@@ -91,9 +96,9 @@ class ConfNode:
         """
         if name.startswith('_'):
             return super().__getattribute__(name)
-        if name in self._parameters and 'default' in self._parameters[name]:
+        if 'default' in self._parameters.get(name, {}):
             try:  # Trying to get attr, if AttributeError => is absent
-                super().__getattribute__(name)
+                return super().__getattribute__(name)
             except AttributeError:
                 return self._parameters[name]['default']
         return super().__getattribute__(name)
