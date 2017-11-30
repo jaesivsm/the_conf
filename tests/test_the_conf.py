@@ -99,3 +99,15 @@ class TestTheConfObj(unittest.TestCase):
                     'config_files': []}
         tc = TheConf(metaconf, environ={})
         self.assertFalse(tc.option)
+
+    def test_set_to_path(self):
+        metaconf = {'parameters': [
+                        {'option': {'type': int, 'default': 1}}],
+                    'source_order': ['env'],
+                    'config_files': []}
+        tc = TheConf(metaconf, environ={})
+        self.assertEqual(1, tc.option)
+        tc._set_to_path(['option'], 2)
+        self.assertEqual(2, tc.option)
+        del tc.option
+        self.assertEqual(1, tc.option)

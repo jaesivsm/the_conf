@@ -21,7 +21,7 @@ class ConfNode:
     def _load_parameters(self, *parameters):
         for parameter in parameters:
             for name, value in parameter.items():
-                if isinstance(value, list) and not hasattr(self, name):
+                if isinstance(value, list) and not self._has_attr(name):
                     setattr(self, name, ConfNode(self, name, *value))
                 elif isinstance(value, list):
                     getattr(self, name)._load_parameters(*value)
@@ -66,6 +66,13 @@ class ConfNode:
             settings['default'] = settings['type'](settings['default'])
         self._parameters[name] = settings
 
+    def _has_attr(self, attr):
+        try:
+            super().__getattribute__(attr)
+            return True
+        except AttributeError:
+            return False
+
     def _set_to_path(self, path, value, overwrite=False):
         """Will set the value to the provided path. Local node if path length
         is one, a child node if path length is more that one.
@@ -73,22 +80,18 @@ class ConfNode:
         path: list
         value: the value to set
         """
+        attr = path[0]
         if len(path) == 1:
-            try:
-                super().__getattribute__(path[0])
-                has_attr = True
-            except AttributeError:
-                has_attr = False
-            if not overwrite and has_attr:
+            if not overwrite and self._has_attr(attr):
                 return
-            if 'read_only' in self._parameters[path[0]]:
-                read_only = self._parameters[path[0]].pop('read_only')
-                res = setattr(self, path[0], value)
-                self._parameters[path[0]]['read_only'] = read_only
+            if 'read_only' in self._parameters[attr]:
+                read_only = self._parameters[attr].pop('read_only')
+                res = setattr(self, attr, value)
+                self._parameters[attr]['read_only'] = read_only
                 return res
-            return setattr(self, path[0], value)
-        return getattr(self, path[0])._set_to_path(path[1:], value,
-                                                   overwrite=overwrite)
+            return setattr(self, attr, value)
+        return getattr(self, attr)._set_to_path(path[1:], value,
+                                                overwrite=overwrite)
 
     def __getattribute__(self, name):
         """Return a parameter of the node if this one is defined.
