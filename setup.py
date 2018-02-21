@@ -13,7 +13,7 @@ with open('README.md') as fd:
     readme = fd.read()
 
 setup(name='the_conf',
-      version='0.0.8',
+      version='0.0.11',
       description='Config build from multiple sources',
       long_description=readme,
       keywords='conf configuration json yaml command line environ',
@@ -27,6 +27,6 @@ setup(name='the_conf',
       maintainer_email="francois@schmidts.fr",
       packages=['the_conf'],
       url='https://github.com/jaesivsm/the_conf/',
-      install_requires=['PyYAML==3.12'],
+      install_requires=['PyYAML>=3.12'],
       test_suite='setup.the_conf_test_suite',
       )

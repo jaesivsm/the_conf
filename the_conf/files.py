@@ -8,6 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 def read(*paths):
+    any_found = False
     for path in paths:
         path = abspath(expanduser(path.strip()))
         ext = splitext(path)[1][1:]
@@ -21,10 +22,13 @@ def read(*paths):
             else:
                 logger.error("File %r ignored: unknown type (%s)", path, ext)
                 continue
+            any_found = True
         except FileNotFoundError:
-            logger.warning('%r not found', path)
+            logger.debug('%r not found', path)
         except PermissionError:
             logger.warning('%r: no right to read', path)
+    if not any_found:
+        logger.warning('no file found among %r', paths)
 
 
 def _extract_value(config, path):
