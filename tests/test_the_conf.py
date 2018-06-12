@@ -27,8 +27,6 @@ class TestTheConfObj(unittest.TestCase):
         self.assertRaises(AttributeError, getattr, tc, 'config')
         tc = TheConf(self.conf, cmd_line_opts=['--stuff=the conf'])
         self.assertEqual('the conf', tc.config)
-        tc = TheConf(self.conf, cmd_line_opts=['--stuff=wrong'])
-        self.assertEqual('the conf', tc.config)
 
     def test_loading_from_env(self):
         metaconf = {'parameters': [{'option': {'type': str}}],
