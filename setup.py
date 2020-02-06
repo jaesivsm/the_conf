@@ -9,13 +9,9 @@ def the_conf_test_suite():
     return test_suite
 
 
-with open('README.md') as fd:
-    readme = fd.read()
-
 setup(name='the_conf',
-      version='0.0.12',
+      version='0.0.13',
       description='Config build from multiple sources',
-      long_description=readme,
       keywords='conf configuration json yaml command line environ',
       classifiers=[
           "Programming Language :: Python :: 3",

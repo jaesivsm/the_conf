@@ -13,29 +13,45 @@ class TheConf(node.ConfNode):
 
     def __init__(self, *metaconfs, prompt_values=False,
                  cmd_line_opts=None, environ=None):
-        self._source_order = DEFAULT_ORDER
-        self._config_files = None
-        self._config_file_cmd_line = DEFAULT_CONFIG_FILE_CMD_LINE
-        self._config_file_environ = DEFAULT_CONFIG_FILE_ENVIRON
+        self._source_order = list(DEFAULT_ORDER)
+        self._config_files = []
+        self._config_file_cmd_line = list(DEFAULT_CONFIG_FILE_CMD_LINE)
+        self._config_file_environ = list(DEFAULT_CONFIG_FILE_ENVIRON)
         self._main_conf_file = None
         self._cmd_line_opts = cmd_line_opts
         self._environ = environ
         self._prompt_values = prompt_values
 
+        def is_default(value, default):
+            if not value or isinstance(value, tuple):
+                return True
+            return tuple(value) == default
+
+        def set_metaconf_setting(key, metaconf, default):
+            if key not in metaconf:
+                return
+            new_value = metaconf[key]
+            if isinstance(metaconf[key], (list, tuple, set)):
+                new_value = list(new_value)
+            elif isinstance(new_value, (str, int, float)):
+                raise TypeError('metaconf parameter %s is of unknown type %r'
+                                % (key, type(new_value)))
+            value = getattr(self, '_' + key)
+            if is_default(value, default):
+                setattr(self, '_' + key, new_value)
+            else:
+                value.extend(new_value)
+
         super().__init__()
         for mc in metaconfs:
             if isinstance(mc, str):
                 _, _, mc = next(files.read(mc))
-            if self._source_order is DEFAULT_ORDER:
-                self._source_order = mc.get('source_order', DEFAULT_ORDER)
-            if self._config_file_cmd_line is DEFAULT_CONFIG_FILE_CMD_LINE:
-                self._config_file_cmd_line = mc.get('config_file_cmd_line',
-                        DEFAULT_CONFIG_FILE_CMD_LINE)
-            if self._config_file_cmd_line is DEFAULT_CONFIG_FILE_ENVIRON:
-                self._config_file_environ = mc.get('config_file_environ',
-                        DEFAULT_CONFIG_FILE_ENVIRON)
-            if self._config_files is None:
-                self._config_files = mc.get('config_files', None)
+            set_metaconf_setting('source_order', mc, DEFAULT_ORDER)
+            set_metaconf_setting('config_file_cmd_line',
+                                 mc, DEFAULT_CONFIG_FILE_CMD_LINE)
+            set_metaconf_setting('config_file_environ',
+                                 mc, DEFAULT_CONFIG_FILE_ENVIRON)
+            set_metaconf_setting('config_files', mc, None)
 
             self._load_parameters(*mc['parameters'])
         self.load()
@@ -108,7 +124,7 @@ class TheConf(node.ConfNode):
             raise ValueError('no config file to write in')
 
         files.write(self._extract_config(),
-                config_file or self._config_files[0])
+                    config_file or self._config_files[0])
 
     def prompt_values(self, only_empty=True, only_no_default=True,
             only_required=True, only_w_help=True):
