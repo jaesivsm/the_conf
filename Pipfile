@@ -13,7 +13,7 @@ pylint = "*"
 twine = "*"
 
 [packages]
-pyyaml = "*"
+pyyaml = "==5.3"
 
 [requires]
 python_version = "3"
