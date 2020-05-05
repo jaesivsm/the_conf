@@ -10,7 +10,7 @@ def the_conf_test_suite():
 
 
 setup(name='the_conf',
-      version='0.0.13',
+      version='0.0.15',
       description='Config build from multiple sources',
       keywords='conf configuration json yaml command line environ',
       classifiers=[
@@ -23,6 +23,6 @@ setup(name='the_conf',
       maintainer_email="francois@schmidts.fr",
       packages=['the_conf'],
       url='https://github.com/jaesivsm/the_conf/',
-      install_requires=['PyYAML>=3.12'],
+      install_requires=['PyYAML>=5.3'],
       test_suite='setup.the_conf_test_suite',
       )
