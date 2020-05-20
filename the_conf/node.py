@@ -36,17 +36,21 @@ class ConfNode:
         if name in self._parameters:
             logger.debug('ignoring')
             return
-        # something smarter that'd allow custom type
-        if settings.get('type') in TYPE_MAPPING:
-            settings['type'] = TYPE_MAPPING[settings['type']]
-        elif isinstance(settings.get('type'), type):
-            pass
-        elif settings.get('type'):
-            logger.warning('unknown type %r', settings['type'])
-            settings['type'] = str
-        else:
-            settings['type'] = str
         has_default = bool(settings.get('default'))
+        has_type = bool(settings.get('type'))
+        # something smarter that'd allow custom type
+        if has_default and not has_type:
+            settings['type'] = type(settings['default'])
+        else:
+            if settings.get('type') in TYPE_MAPPING:
+                settings['type'] = TYPE_MAPPING[settings['type']]
+            elif isinstance(settings.get('type'), type):
+                pass
+            elif has_type:
+                logger.warning('unknown type %r', settings['type'])
+                settings['type'] = str
+            else:
+                settings['type'] = str
         has_among = bool(settings.get('among'))
         settings['required'] = bool(settings.get('required'))
         settings['read_only'] = bool(settings.get('read_only'))
