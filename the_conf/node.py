@@ -140,3 +140,47 @@ class ConfNode:
             else:
                 yield self._path + [name], getattr(self, name, NoValue), \
                         self._parameters[name]
+
+    def __repr__(self):
+        result = {"string": "<%s({" % self.__class__.__name__}
+        result["length"] = len(result["string"])
+        old_loc, new_loc = [], []
+
+        def spaces(index):
+            if len(result["string"]) != result["length"]:
+                return ' ' * (4 * index + result["length"])
+            return ''
+
+        def open_path(index, name):
+            result["string"] += "%s%r: {\n" % (spaces(index), name)
+
+        def close_path(index):
+            result["string"] += "%s},\n" % spaces(index - 1)
+
+        def add_key(index, name, value):
+            result["string"] += "%s%r: %r,\n" % (spaces(index), name, value)
+
+        for path, value, _ in self._get_path_val_param():
+            new_loc = path[:-1]
+            if new_loc != old_loc:
+                diff_index = None
+                for index, old_new in enumerate(zip(old_loc, new_loc)):
+                    if old_new[0] != old_new[1]:
+                        diff_index = index
+                        break
+                if diff_index is not None:
+                    for index in range(len(old_loc), diff_index, -1):
+                        close_path(index)
+                    for index in range(diff_index, len(new_loc)):
+                        open_path(index, new_loc[index])
+                elif len(old_loc) > len(new_loc):  # we got out
+                    for index in range(len(old_loc), len(new_loc), -1):
+                        close_path(index)
+                elif len(new_loc) > len(old_loc):  # we got in
+                    for index in range(len(old_loc), len(new_loc)):
+                        open_path(index, new_loc[index])
+            add_key(len(new_loc), path[-1], value)
+            old_loc = new_loc
+        for index in range(len(old_loc), 0, -1):
+            close_path(index)
+        return result["string"] + ")>"
