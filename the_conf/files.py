@@ -15,7 +15,8 @@ def read(*paths):
         try:
             if ext in {'yml', 'yaml'}:
                 with open(path, 'r') as fd:
-                    yield path, ext, yaml.load(fd.read())
+                    yield path, ext, yaml.load(fd.read(),
+                                               Loader=yaml.FullLoader)
             elif ext == 'json':
                 with open(path, 'r') as fd:
                     yield path, ext, json.load(fd)
