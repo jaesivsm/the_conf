@@ -10,7 +10,7 @@ def the_conf_test_suite():
 
 
 setup(name='the_conf',
-      version='0.0.15',
+      version='0.0.16',
       description='Config build from multiple sources',
       keywords='conf configuration json yaml command line environ',
       classifiers=[
