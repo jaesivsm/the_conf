@@ -11,20 +11,22 @@ class NoValue:
 
 class ConfNode:
 
-    def __init__(self, parent=None, name='', *parameters):
+    def __init__(self, parameters=None, parent=None, name=''):
         self._name = name
         self._parent = parent
         self._children = []
         self._parameters = {}
-        self._load_parameters(*parameters)
+        self._load_parameters(parameters if parameters is not None else [])
 
-    def _load_parameters(self, *parameters):
+    def _load_parameters(self, parameters):
         for parameter in parameters:
             for name, value in parameter.items():
                 if isinstance(value, list) and not self._has_attr(name):
-                    setattr(self, name, ConfNode(self, name, *value))
+                    setattr(self, name, ConfNode(parameters=value,
+                                                 name=name,
+                                                 parent=self))
                 elif isinstance(value, list):
-                    getattr(self, name)._load_parameters(*value)
+                    getattr(self, name)._load_parameters(value)
                 else:
                     self._load_parameter(name, value)
                 if name not in self._children:

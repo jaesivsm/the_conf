@@ -53,7 +53,7 @@ class TheConf(node.ConfNode):
                                  mc, DEFAULT_CONFIG_FILE_ENVIRON)
             set_metaconf_setting('config_files', mc, None)
 
-            self._load_parameters(*mc['parameters'])
+            self._load_parameters(mc['parameters'])
         self.load()
 
     def _load_files(self):
