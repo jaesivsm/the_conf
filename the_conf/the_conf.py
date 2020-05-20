@@ -95,7 +95,7 @@ class TheConf(node.ConfNode):
             elif order == 'env':
                 self._load_env(self._environ)
             else:
-                raise Exception('unknown order %r')
+                raise Exception('unknown order %r' % order)
 
         if self._prompt_values:
             self.prompt_values(False, False, False, False)
