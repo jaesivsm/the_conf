@@ -3,17 +3,16 @@ TWINE_USERNAME ?=
 TWINE_PASSWORD ?=
 
 install:
-	pipenv sync --dev
+	poetry update
 
 test:
-	pipenv run python setup.py test
+	poetry run pytest
 
 clean:
 	rm -rf build dist
-	pipenv run python setup.py clean
 
 build: clean
-	pipenv run python setup.py sdist
+	poetry build
 
 deploy: build
-	pipenv run twine upload $(PACKAGE)
+	poetry publish
