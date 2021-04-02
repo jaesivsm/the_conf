@@ -1,7 +1,3 @@
-PACKAGE=dist/$(shell ls dist | tail -n 1)
-TWINE_USERNAME ?=
-TWINE_PASSWORD ?=
-
 install:
 	poetry update
 

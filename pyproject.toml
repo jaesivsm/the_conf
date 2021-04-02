@@ -1,9 +1,18 @@
 [tool.poetry]
 name = "the_conf"
-version = "0.0.17"
+version = "0.0.18"
 description = "Config build from multiple sources"
 authors = ["François Schmidts <francois@schmidts.fr>"]
 license = "GPLv3"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)"
+]
+keywords = ['conf', 'configuration', 'json', 'yaml']
+homepage = "https://github.com/jaesivsm/the_conf"
+repository = "https://github.com/jaesivsm/the_conf"
+documentation = "https://github.com/jaesivsm/the_conf#readme"
+readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.6"
