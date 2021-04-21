@@ -12,3 +12,5 @@ build: clean
 
 deploy: build
 	poetry publish
+	git tag $(shell poetry version -s)
+	git push --tags
