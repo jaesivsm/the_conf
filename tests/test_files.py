@@ -7,10 +7,10 @@ class TestFileMethods(unittest.TestCase):
 
     def test_extract_value_priv(self):
         self.assertEqual(1, files._extract_value({'path': 1}, ['path']))
-        self.assertEqual(1,
-                files._extract_value({'path': {'path': 1}}, ['path', 'path']))
-        self.assertRaises(ValueError,
-                files._extract_value, {'path': 1}, ['wrong'])
+        self.assertEqual(
+            1, files._extract_value({'path': {'path': 1}}, ['path', 'path']))
+        self.assertRaises(
+            ValueError, files._extract_value, {'path': 1}, ['wrong'])
 
     def test_extract_value(self):
         paths = [['path1', 'sub'], ['path2'], ['path3']]

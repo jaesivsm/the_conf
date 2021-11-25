@@ -2,7 +2,7 @@ install:
 	poetry update
 
 test:
-	poetry run pytest
+	PYTHONPATH=$(PYTHONPATH):$(shell pwd) poetry run pytest
 
 clean:
 	rm -rf build dist
