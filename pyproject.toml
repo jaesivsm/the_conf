@@ -19,12 +19,12 @@ python = "^3.6"
 pyyaml = "^5.3"
 
 [tool.poetry.dev-dependencies]
-pycodestyle = "^2.7.0"
-coverage = "^5.5"
-coveralls = "^3.0.1"
-ipdb = "^0.13.7"
-pylint = "^2.7.4"
-pytest = "^6.2.2"
+pycodestyle = "*"
+coverage = "*"
+coveralls = "*"
+ipdb = "*"
+pylint = "*"
+pytest = "*"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
