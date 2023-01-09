@@ -1,38 +1,67 @@
 import logging
+from copy import deepcopy
+from itertools import chain
 
-TYPE_MAPPING = {'int': int, 'str': str, 'list': list, 'dict': dict,
-                'bool': bool}
+from the_conf.utils import TYPE_MAPPING, Index, NoValue
+from the_conf.files import extract_value
+
 logger = logging.getLogger(__name__)
 
 
-class NoValue:
-    pass
-
-
-class ConfNode:
+class AbstractNode:
 
     def __init__(self, parameters=None, parent=None, name=''):
         self._name = name
         self._parent = parent
-        self._children = []
         self._parameters = {}
+        self._children = []
         self._load_parameters(parameters if parameters is not None else [])
+
+    @property
+    def _path(self):
+        if self._parent is None:
+            return []
+        return self._parent._path + [self._name]
+
+    def _get_path_val_param(self, absolute=True):
+        raise NotImplementedError()
+
+    def _set_to_path(self, path, value, overwrite=False):
+        """Will set the value to the provided path. Local node if path length
+        is one, a child node if path length is more that one.
+
+        path: list
+        value: the value to set
+        """
 
     def _load_parameters(self, parameters):
         for parameter in parameters:
-            for name, value in parameter.items():
-                if isinstance(value, list) and not self._has_attr(name):
-                    setattr(self, name, ConfNode(parameters=value,
-                                                 name=name,
-                                                 parent=self))
-                elif isinstance(value, list):
-                    getattr(self, name)._load_parameters(value)
+            node_type = parameter.get('type', 'dict')
+            node_type = TYPE_MAPPING.get(node_type) or node_type
+            name = next(key for key in parameter if key != 'type')
+            is_node = isinstance(parameter[name], list)
+            if node_type is dict:
+                if is_node and not self._has_attr(name):
+                    setattr(self, name, ConfNode(parameters=parameter[name],
+                                                 name=name, parent=self))
+                elif is_node:
+                    getattr(self, name)._load_parameters(parameter[name])
                 else:
-                    self._load_parameter(name, value)
-                if name not in self._children:
-                    self._children.append(name)
+                    self._load_parameter(name, parameter[name])
+            elif node_type is list:
+                if not self._has_attr(name):
+                    node = ListNode(
+                        parameters=parameter[name] if is_node else None,
+                        node_type=None if is_node else parameter[name],
+                        name=name, parent=self,
+                    )
+                    setattr(self, name, node)
+                else:
+                    raise Exception('_load_parameters')
+            if name not in self._children:
+                self._children.append(name)
 
-    def _load_parameter(self, name, settings):
+    def _load_parameter(self, name, settings, node_type=dict):
         if name in self._parameters:
             logger.debug('ignoring')
             return
@@ -55,18 +84,18 @@ class ConfNode:
         settings['required'] = bool(settings.get('required'))
         settings['read_only'] = bool(settings.get('read_only'))
 
-        path = ".".join(self._path + [name])
+        path = ".".join(map(str, chain(self._path, [name])))
         if has_among:
-            assert isinstance(settings['among'], list), ("parameters %s "
-                    "configuration has wrong value for 'among', should be a "
-                    "list, ignoring it" % path)
+            assert isinstance(settings['among'], list), (
+                f"parameters {path!r} configuration has wrong value for "
+                "'among', should be a list, ignoring it")
         if has_default and has_among:
-            assert settings.get('default') in settings.get('among'), ("default"
-                    " value for %r is not among the selectable values (%r)" % (
-                        path, settings.get('among')))
+            assert settings.get('default') in settings.get('among'), (
+                f"default value for {path!r} is not among the "
+                f"selectable values ({settings.get('among')!r}")
         if has_default and settings['required']:
             raise ValueError(
-                    "%r required parameter can't have default value" % path)
+                    f"{path!r} required parameter can't have default value")
 
         if 'type' in settings and 'default' in settings:
             settings['default'] = settings['type'](settings['default'])
@@ -79,23 +108,24 @@ class ConfNode:
         except AttributeError:
             return False
 
-    def _set_to_path(self, path, value, overwrite=False):
-        """Will set the value to the provided path. Local node if path length
-        is one, a child node if path length is more that one.
 
-        path: list
-        value: the value to set
-        """
+class ConfNode(AbstractNode):
+
+    def _set_to_path(self, path, value, overwrite=False):
         attr = path[0]
         if len(path) == 1:
             if not overwrite and self._has_attr(attr):
                 return
-            if 'read_only' in self._parameters[attr]:
+            read_only = None
+            if self._parameters[attr].get('read_only'):
+                # bypassing overwrite protection since we either:
+                # - do not have that value in the first place
+                # - overwrite has been activated
                 read_only = self._parameters[attr].pop('read_only')
-                res = setattr(self, attr, value)
+            res = setattr(self, attr, value)
+            if read_only is not None:
                 self._parameters[attr]['read_only'] = read_only
-                return res
-            return setattr(self, attr, value)
+            return res
         return getattr(self, attr)._set_to_path(path[1:], value,
                                                 overwrite=overwrite)
 
@@ -113,36 +143,33 @@ class ConfNode:
         return super().__getattribute__(name)
 
     def __setattr__(self, key, value):
-        if key.startswith('_') or isinstance(value, ConfNode):
+        if key.startswith('_') or isinstance(value, AbstractNode):
             return super().__setattr__(key, value)
         if key not in self._parameters:
-            raise ValueError('%r is not a registered conf option' % self._path)
+            raise ValueError(f"{self._path} is not a registered conf option")
         if self._parameters[key].get('read_only'):
             raise AttributeError('attribute is in read only mode')
         if 'among' in self._parameters[key]:
             if value not in self._parameters[key]['among']:
-                raise ValueError("%r: value %r isn't in %r" % (
-                        self._path, value, self._parameters[key]['among']))
+                raise ValueError(f"{self._path!r}: value {value!r} isn't "
+                                 f"in {self._parameters[key]['among']!r}")
         if 'type' in self._parameters[key]:
             value = self._parameters[key]['type'](value)
         return super().__setattr__(key, value)
 
-    @property
-    def _path(self):
-        if self._parent is None:
-            return []
-        return self._parent._path + [self._name]
-
-    def _get_path_val_param(self):
-        for name in self._children:
-            if isinstance(getattr(self, name, None), ConfNode):
-                yield from getattr(self, name)._get_path_val_param()
+    def _get_path_val_param(self, absolute=True):
+        for child in self._children:
+            if isinstance(getattr(self, child, None), AbstractNode):
+                yield from getattr(self, child)._get_path_val_param()
             else:
-                yield self._path + [name], getattr(self, name, NoValue), \
-                        self._parameters[name]
+                if absolute:
+                    path = self._path + [child]
+                else:
+                    path = [child]
+                yield path, getattr(self, child, NoValue), self._parameters[child]
 
     def __repr__(self):
-        result = {"string": "<%s({" % self.__class__.__name__}
+        result = {"string": f"<{self.__class__.__name__}({{"}
         result["length"] = len(result["string"])
         old_loc, new_loc = [], []
 
@@ -152,13 +179,13 @@ class ConfNode:
             return ''
 
         def open_path(index, name):
-            result["string"] += "%s%r: {\n" % (spaces(index), name)
+            result["string"] += f"{spaces(index)}{name!r}: {{\n"
 
         def close_path(index):
-            result["string"] += "%s},\n" % spaces(index - 1)
+            result["string"] += f"{spaces(index - 1)}}},\n"
 
         def add_key(index, name, value):
-            result["string"] += "%s%r: %r,\n" % (spaces(index), name, value)
+            result["string"] += f"{spaces(index)}{name!r}: {value!r},\n"
 
         for path, value, _ in self._get_path_val_param():
             new_loc = path[:-1]
@@ -184,3 +211,58 @@ class ConfNode:
         for index in range(len(old_loc), 0, -1):
             close_path(index)
         return result["string"] + ")>"
+
+
+class ListNode(list, AbstractNode):
+
+    def __init__(self, *args, parameters=None, parent=None, name='',
+                 node_type=None, **kwargs):
+        AbstractNode.__init__(self, parameters, parent, name)
+        list.__init__(self, *args, **kwargs)
+        self._node_type = node_type or {}
+        if self._children:
+            parameters = [{child: self._parameters[child]}
+                          for child in self._children]
+            self._template_node = ConfNode(
+                parameters, parent=self, name=Index)
+
+    def _get_path_val_param(self, absolute=True):
+        path = self._path
+        if self._children:
+            for child in self._children:
+                if self:
+                    for index, value in enumerate(self):
+                        yield from value._get_path_val_param()
+                else:
+                    yield (path + [Index, child], NoValue,
+                        self._parameters[child])
+        else:
+            if self:
+                for index, value in enumerate(self):
+                    yield path + [index], value, self._parameters
+            else:
+                yield path + [Index], self, self._parameters
+
+    def __setitem__(self, index, value):
+        if self._node_type.get('type'):
+            if not isinstance(value, self._node_type['type']):
+                value = self._node_type['type'](value)
+            return super().__setitem__(index, value)
+        node = deepcopy(self._template_node)
+        for path, _, _ in node._get_path_val_param(absolute=False):
+            for _, sub_value in extract_value(value, path):
+                node._set_to_path(path, sub_value)
+        return super().__setitem__(index, node)
+
+    def _set_to_path(self, path, value, overwrite=False):
+        assert isinstance(path[0], int)
+        if len(path) == 1 and not self._children:
+            if len(self) <= path[0]:
+                self.append(value)
+            else:
+                self[path[0]] = value
+        else:
+            if len(self) <= path[0]:
+                node = deepcopy(self._template_node)
+                self.append(node)
+            self[path[0]]._set_to_path(path[1:], value, overwrite)
