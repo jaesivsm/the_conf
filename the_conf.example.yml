@@ -22,8 +22,3 @@ parameters:
   - int_value:
       type: int
       default: 1
-#  - list_opt:
-#      type: list_of
-#      sub_type:
-#        type: str
-#        read_only: false

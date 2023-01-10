@@ -1,14 +1,12 @@
-import unittest
+from unittest import TestCase
+
 from the_conf import TheConf
 
 
-class TestTheConfObj(unittest.TestCase):
+class TestTheConfObj(TestCase):
 
     def setUp(self):
         self.conf = 'the_conf.example.yml'
-
-    def tearDown(self):
-        TheConf._TheConf__instance = None
 
     def test_conf_loading(self):
         tc = TheConf(self.conf, cmd_line_opts=['--stuff=stuff'])
@@ -39,7 +37,7 @@ class TestTheConfObj(unittest.TestCase):
         metaconf = {'parameters': [{'option': [{'option': {'type': str}}]}],
                     'source_order': ['env']}
         tc = TheConf(metaconf,
-                environ={'OPTION_OPTION': 'value', 'OPTION': 'stuff'})
+                     environ={'OPTION_OPTION': 'value', 'OPTION': 'stuff'})
         self.assertEqual('value', tc.option.option)
 
     def test_conf_from_obj(self):
