@@ -1,5 +1,11 @@
-TYPE_MAPPING = {'int': int, 'str': str, 'list': list, 'dict': dict,
-                'bool': bool}
+TYPE_MAPPING = {
+    "int": int,
+    "str": str,
+    "list": list,
+    "dict": dict,
+    "bool": bool,
+}
+
 
 class Index:
     pass

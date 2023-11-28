@@ -15,23 +15,24 @@ def read(*paths):
         path = abspath(expanduser(path.strip()))
         ext = splitext(path)[1][1:]
         try:
-            if ext in {'yml', 'yaml'}:
-                with open(path, 'r', encoding='utf8') as fd:
-                    yield path, ext, yaml.load(fd.read(),
-                                               Loader=yaml.FullLoader)
-            elif ext == 'json':
-                with open(path, 'r', encoding='utf8') as fd:
+            if ext in {"yml", "yaml"}:
+                with open(path, "r", encoding="utf8") as fd:
+                    yield path, ext, yaml.load(
+                        fd.read(), Loader=yaml.FullLoader
+                    )
+            elif ext == "json":
+                with open(path, "r", encoding="utf8") as fd:
                     yield path, ext, json.load(fd)
             else:
                 logger.error("File %r ignored: unknown type (%s)", path, ext)
                 continue
             any_found = True
         except FileNotFoundError:
-            logger.debug('%r not found', path)
+            logger.debug("%r not found", path)
         except PermissionError:
-            logger.warning('%r: no right to read', path)
+            logger.warning("%r: no right to read", path)
     if not any_found:
-        logger.warning('no file found among %r', paths)
+        logger.warning("no file found among %r", paths)
 
 
 def extract_value(config, path, full_path=None):
@@ -43,11 +44,13 @@ def extract_value(config, path, full_path=None):
             if len(path) == 1:
                 yield full_path + [index], sub_config
             else:
-                yield from extract_value(config[index], path[1:],
-                                         full_path + [index])
+                yield from extract_value(
+                    config[index], path[1:], full_path + [index]
+                )
     elif path[0] in config:
-        yield from extract_value(config[path[0]], path[1:],
-                                 full_path + [path[0]])
+        yield from extract_value(
+            config[path[0]], path[1:], full_path + [path[0]]
+        )
     else:
         raise ValueError(f"no {path[0]!r} in {config!r}")
 
@@ -63,18 +66,20 @@ def extract_values(paths, config, config_file):
                     assert full_path == path
                     yield path, value
         except ValueError:
-            logger.debug('%s not found in %r', '.'.join(path), config_file)
+            logger.debug("%s not found in %r", ".".join(path), config_file)
 
 
 def write(config, path):
     path = abspath(expanduser(path.strip()))
     ext = splitext(path)[1][1:]
-    if ext in {'yml', 'yaml'}:
-        with open(path, 'w', encoding='utf8') as fp:
+    if ext in {"yml", "yaml"}:
+        with open(path, "w", encoding="utf8") as fp:
             yaml.dump(config, fp)
-    elif ext == 'json':
-        with open(path, 'w', encoding='utf8') as fp:
+    elif ext == "json":
+        with open(path, "w", encoding="utf8") as fp:
             json.dump(config, fp)
     else:
-        raise ValueError("couldn't make out file type, conf file path should "
-                         "end with either yml, yaml or json")
+        raise ValueError(
+            "couldn't make out file type, conf file path should "
+            "end with either yml, yaml or json"
+        )
