@@ -1,6 +1,9 @@
+from typing import Union, Tuple, Set, List
 from argparse import ArgumentParser
 
 CONFIG_OPT_DEST = "config_file_path"
+PASSKEY_OPT_DEST = "passkey"
+OPTS_TYPE = Union[Tuple[str, ...], List[str], Set[str]]
 
 
 def path_to_cmd_opt(path):
@@ -11,11 +14,18 @@ def path_to_dest(path):
     return "_".join(path)
 
 
-def get_parser(path_n_params, config_file_cmd_line):
+def get_parser(
+    path_n_params, config_file_cmd_line: OPTS_TYPE, passkey_cmd_line: OPTS_TYPE
+):
     parser = ArgumentParser()
     parser.add_argument(
         *config_file_cmd_line,
         dest=CONFIG_OPT_DEST,
+        help="set main conf file to load configuration from",
+    )
+    parser.add_argument(
+        *passkey_cmd_line,
+        dest=PASSKEY_OPT_DEST,
         help="set main conf file to load configuration from",
     )
     for path, _, param in path_n_params:
@@ -44,10 +54,18 @@ def get_parser(path_n_params, config_file_cmd_line):
     return parser
 
 
-def yield_values_from_cmd(path_val_params, opts, config_file_cmd_line):
-    parser = get_parser(path_val_params, config_file_cmd_line)
+def yield_values_from_cmd(
+    path_val_params,
+    opts,
+    config_file_cmd_line: OPTS_TYPE,
+    passkey_cmd_line: OPTS_TYPE,
+):
+    parser = get_parser(
+        path_val_params, config_file_cmd_line, passkey_cmd_line
+    )
     cmd_line_args, _ = parser.parse_known_args(opts)
     yield getattr(cmd_line_args, CONFIG_OPT_DEST)
+    yield getattr(cmd_line_args, PASSKEY_OPT_DEST)
     for path, _, _ in path_val_params:
         value = getattr(cmd_line_args, path_to_dest(path))
         if value is not None:

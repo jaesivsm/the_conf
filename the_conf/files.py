@@ -1,31 +1,84 @@
 import json
 import logging
 from os.path import abspath, expanduser, splitext
-
+from typing import Union, Optional, Tuple, Generator
 import yaml
 
 from the_conf.utils import Index
+from base64 import b64decode, b64encode
+
+from Crypto.Cipher import AES
+from Crypto.Random import get_random_bytes
+
+# from Crypto.Random import get_random_bytes
+
 
 logger = logging.getLogger(__name__)
+ENCODING = "utf8"
+CRYPT_SEPARATOR = ";"
 
 
-def read(*paths):
+def decrypt(
+    payload: str,
+    passkey: Union[bytes, str],
+    separator: str = CRYPT_SEPARATOR,
+) -> str:
+    if isinstance(passkey, str):
+        passkey = passkey.encode(ENCODING)
+    assert len(passkey) >= 32, "Your passkey is too short"
+    nonce, data, tag, *_meta = payload.split(separator)
+    if nonce and data:
+        cipher = AES.new(passkey, AES.MODE_GCM, nonce=b64decode(nonce))
+        return cipher.decrypt_and_verify(
+            b64decode(data), b64decode(tag)
+        ).decode(ENCODING)
+    raise RuntimeError("Couldn't decrypt payload")
+
+
+def encrypt(
+    payload: str,
+    passkey: Union[bytes, str],
+    separator: str = CRYPT_SEPARATOR,
+) -> str:
+    if isinstance(passkey, str):
+        passkey = passkey.encode(ENCODING)
+    assert len(passkey) >= 32, "Your passkey is too short"
+    nonce = get_random_bytes(12)
+    cipher = AES.new(passkey, AES.MODE_GCM, nonce=nonce)
+    data, tag = cipher.encrypt_and_digest(payload.encode(ENCODING))
+
+    crypted_payload = [
+        b64encode(nonce).decode(ENCODING),
+        b64encode(data).decode(ENCODING),
+        b64encode(tag).decode(ENCODING),
+    ]
+    return separator.join(crypted_payload)
+
+
+def read(
+    paths, passkey: Optional[str] = None
+) -> Generator[Tuple[str, str], None, None]:
     any_found = False
     for path in paths:
         path = abspath(expanduser(path.strip()))
         ext = splitext(path)[1][1:]
         try:
-            if ext in {"yml", "yaml"}:
-                with open(path, "r", encoding="utf8") as fd:
-                    yield path, ext, yaml.load(
-                        fd.read(), Loader=yaml.FullLoader
+            with open(path, "r", encoding=ENCODING) as fd:
+                payload = fd.read()
+                if passkey is not None:
+                    try:
+                        payload = decrypt(payload, passkey)
+                    except RuntimeError:
+                        pass
+                if ext in {"yml", "yaml"}:
+                    yield path, yaml.load(payload, Loader=yaml.FullLoader)
+                elif ext == "json":
+                    yield path, json.load(fd)
+                else:
+                    logger.error(
+                        "File %r ignored: unknown type (%s)", path, ext
                     )
-            elif ext == "json":
-                with open(path, "r", encoding="utf8") as fd:
-                    yield path, ext, json.load(fd)
-            else:
-                logger.error("File %r ignored: unknown type (%s)", path, ext)
-                continue
+                    continue
             any_found = True
         except FileNotFoundError:
             logger.debug("%r not found", path)
@@ -73,10 +126,10 @@ def write(config, path):
     path = abspath(expanduser(path.strip()))
     ext = splitext(path)[1][1:]
     if ext in {"yml", "yaml"}:
-        with open(path, "w", encoding="utf8") as fp:
+        with open(path, "w", encoding=ENCODING) as fp:
             yaml.dump(config, fp)
     elif ext == "json":
-        with open(path, "w", encoding="utf8") as fp:
+        with open(path, "w", encoding=ENCODING) as fp:
             json.dump(config, fp)
     else:
         raise ValueError(

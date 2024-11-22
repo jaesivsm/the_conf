@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "the_conf"
-version = "0.0.23"
+version = "1.0.0"
 description = "Config build from multiple sources"
 authors = ["François Schmidts <francois@schmidts.fr>"]
 license = "GPLv3"
@@ -15,8 +15,9 @@ documentation = "https://github.com/jaesivsm/the_conf#readme"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = ">=3.10"
+python = ">=3.9"
 pyyaml = "*"
+pycryptodome = "^3.21.0"
 
 [tool.poetry.group.dev.dependencies]
 pycodestyle = "*"
