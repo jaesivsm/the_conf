@@ -29,9 +29,12 @@ def decrypt(
     nonce, data, tag, *_meta = payload.split(separator)
     if nonce and data:
         cipher = AES.new(passkey, AES.MODE_GCM, nonce=b64decode(nonce))
-        return cipher.decrypt_and_verify(
-            b64decode(data), b64decode(tag)
-        ).decode(ENCODING)
+        try:
+            return cipher.decrypt_and_verify(
+                b64decode(data), b64decode(tag)
+            ).decode(ENCODING)
+        except ValueError:
+            pass
     raise RuntimeError("Couldn't decrypt payload")
 
 
@@ -64,7 +67,7 @@ def read(
         ext = splitext(path)[1][1:]
         try:
             with open(path, "r", encoding=ENCODING) as fd:
-                payload = fd.read()
+                payload = fd.read().strip()
                 if passkey is not None:
                     try:
                         payload = decrypt(payload, passkey)
