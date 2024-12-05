@@ -6,7 +6,9 @@ from the_conf import command_line, files, interractive, node, utils
 logger = logging.getLogger(__name__)
 DEFAULT_ORDER = "cmd", "files", "env"
 DEFAULT_CONFIG_FILE_CMD_LINE = "-C", "--config"
-DEFAULT_CONFIG_FILE_ENVIRON = ("CONFIG_FILE",)
+DEFAULT_CONFIG_FILE_ENVIRON = ("THECONF_FILE",)
+DEFAULT_PASSKEY_CMD_LINE = "-P", "--passkey"
+DEFAULT_PASSKEY_ENVIRON = ("THECONF_PASSKEY",)
 
 
 class TheConf(node.ConfNode):
@@ -17,10 +19,13 @@ class TheConf(node.ConfNode):
         self._config_files = []
         self._config_file_cmd_line = list(DEFAULT_CONFIG_FILE_CMD_LINE)
         self._config_file_environ = list(DEFAULT_CONFIG_FILE_ENVIRON)
+        self._passkey_cmd_line = list(DEFAULT_PASSKEY_CMD_LINE)
+        self._passkey_environ = list(DEFAULT_PASSKEY_ENVIRON)
         self._main_conf_file = None
         self._cmd_line_opts = cmd_line_opts
         self._environ = environ
         self._prompt_values = prompt_values
+        self._passkey = None
 
         def is_default(value, default):
             if not value or isinstance(value, tuple):
@@ -47,13 +52,19 @@ class TheConf(node.ConfNode):
         super().__init__()
         for mc in metaconfs:
             if isinstance(mc, str):
-                _, _, mc = next(files.read(mc))
+                _, mc = next(files.read([mc]))
             set_metaconf_setting("source_order", mc, DEFAULT_ORDER)
             set_metaconf_setting(
                 "config_file_cmd_line", mc, DEFAULT_CONFIG_FILE_CMD_LINE
             )
             set_metaconf_setting(
                 "config_file_environ", mc, DEFAULT_CONFIG_FILE_ENVIRON
+            )
+            set_metaconf_setting(
+                "passkey_cmd_line", mc, DEFAULT_PASSKEY_CMD_LINE
+            )
+            set_metaconf_setting(
+                "passkey_environ", mc, DEFAULT_PASSKEY_ENVIRON
             )
             set_metaconf_setting("config_files", mc, None)
 
@@ -63,7 +74,7 @@ class TheConf(node.ConfNode):
     def _load_files(self):
         if self._config_files is None:
             return
-        for conf_file, _, config in files.read(*self._config_files):
+        for conf_file, config in files.read(self._config_files, self._passkey):
             paths = list(path for path, _, _ in self._get_path_val_param())
             for path, value in files.extract_values(paths, config, conf_file):
                 self._set_to_path(path, value, overwrite=True)
@@ -73,10 +84,14 @@ class TheConf(node.ConfNode):
             list(self._get_path_val_param()),
             self._cmd_line_opts,
             self._config_file_cmd_line,
+            self._passkey_cmd_line,
         )
         config_file = next(gen)
         if config_file:
             self._config_files.insert(0, config_file)
+        passkey = next(gen)
+        if passkey:
+            self._passkey = passkey
 
         for path, value in gen:
             self._set_to_path(path, value, overwrite=True)
@@ -87,6 +102,9 @@ class TheConf(node.ConfNode):
         for config_env_key in self._config_file_environ:
             if config_env_key in environ:
                 self._config_files.insert(0, environ[config_env_key])
+        for passkey_env_key in self._passkey_environ:
+            if passkey_env_key in environ:
+                self._passkey = environ[passkey_env_key]
         for path, _, _ in self._get_path_val_param():
             env_key = "_".join(map(str.upper, path))
             if env_key in environ:
@@ -101,7 +119,7 @@ class TheConf(node.ConfNode):
             elif order == "env":
                 self._load_env(self._environ)
             else:
-                raise Exception(f"unknown order {order!r}")
+                raise ValueError(f"unknown order {order!r}")
 
         if self._prompt_values:
             self.prompt_values(False, False, False, False)

@@ -11,8 +11,7 @@ class TestListOpts(TestCase):
 
     @mock.patch('the_conf.files.read')
     def test_simple_list(self, read_patch):
-        read_patch.return_value = [('myfile.json', 'json',
-                                    {'int_list': [1, 2, 3]})]
+        read_patch.return_value = [('myfile.json', {'int_list': [1, 2, 3]})]
         metaconf = {'parameters': [
                         {'type': 'list',
                          'int_list': {'type': int}}],
@@ -40,7 +39,7 @@ class TestListOpts(TestCase):
 
     @mock.patch('the_conf.files.read')
     def test_complex_list(self, read_patch):
-        read_patch.return_value = [('myfile.json', 'json',
+        read_patch.return_value = [('myfile.json',
                                     {'dict_list': [
                                         {'my_int': 1, 'my_str': 'a'},
                                         {'my_int': 2, 'my_str': 'b'}]})]
@@ -72,7 +71,7 @@ class TestListOpts(TestCase):
 #    @mock.patch('the_conf.files.read')
 #    def test_nested_list(self, read_patch):
 #        read_patch.return_value = [
-#            ('myfile.json', 'json',
+#            ('myfile.json',
 #             {'high_list': [{'list_str': ['a', 'b', 'c'],
 #                             'list_dict': [{'a': 'a', 'b': 3}],
 #                             },
