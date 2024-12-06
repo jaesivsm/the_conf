@@ -26,7 +26,12 @@ def decrypt(
     if isinstance(passkey, str):
         passkey = passkey.encode(ENCODING)
     assert len(passkey) >= 32, "Your passkey is too short"
-    nonce, data, tag, *_meta = payload.split(separator)
+    if payload.count("\n"):
+        raise RuntimeError("Couldn't decrypt unencrypted payload")
+    try:
+        nonce, data, tag, *_meta = payload.split(separator)
+    except ValueError as error:
+        raise RuntimeError("Couldn't decrypt payload") from error
     if nonce and data:
         cipher = AES.new(passkey, AES.MODE_GCM, nonce=b64decode(nonce))
         try:
