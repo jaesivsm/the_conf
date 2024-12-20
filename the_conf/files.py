@@ -81,7 +81,7 @@ def read(
                 if ext in {"yml", "yaml"}:
                     yield path, yaml.load(payload, Loader=yaml.FullLoader)
                 elif ext == "json":
-                    yield path, json.load(fd)
+                    yield path, json.loads(payload)
                 else:
                     logger.error(
                         "File %r ignored: unknown type (%s)", path, ext
