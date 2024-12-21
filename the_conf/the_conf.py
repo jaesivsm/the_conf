@@ -1,4 +1,5 @@
 import logging
+import re
 import os
 
 from the_conf import command_line, files, interractive, node, utils
@@ -106,9 +107,29 @@ class TheConf(node.ConfNode):
             if passkey_env_key in environ:
                 self._passkey = environ[passkey_env_key]
         for path, _, _ in self._get_path_val_param():
-            env_key = "_".join(map(str.upper, path))
-            if env_key in environ:
-                self._set_to_path(path, environ[env_key], overwrite=True)
+            if utils.Index not in path:
+                env_key = "_".join(map(str.upper, path))
+                if env_key in environ:
+                    self._set_to_path(path, environ[env_key], overwrite=True)
+            else:
+                patterns = []
+                indexes_places = []
+                for i, elem in enumerate(path):
+                    if elem is utils.Index:
+                        patterns.append(r"(\d+)")
+                        indexes_places.append(i)
+                    else:
+                        patterns.append(elem.upper())
+                pattern = r"_".join(patterns)
+                for environ_key in sorted(environ):
+                    match = re.match(pattern, environ_key)
+                    if match:
+                        amended_path = [
+                            elem if i not in indexes_places
+                            else int(match.groups()[indexes_places.index(i)])
+                            for i, elem in enumerate(path)
+                        ]
+                        self._set_to_path(amended_path, environ[environ_key])
 
     def load(self):
         for order in self._source_order:
