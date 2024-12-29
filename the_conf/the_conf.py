@@ -125,7 +125,8 @@ class TheConf(node.ConfNode):
                     match = re.match(pattern, environ_key)
                     if match:
                         amended_path = [
-                            elem if i not in indexes_places
+                            elem
+                            if i not in indexes_places
                             else int(match.groups()[indexes_places.index(i)])
                             for i, elem in enumerate(path)
                         ]
