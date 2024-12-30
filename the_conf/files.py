@@ -127,7 +127,7 @@ def extract_values(paths, config, config_file):
                     assert full_path == path
                     yield path, value
         except ValueError:
-            logger.debug("%s not found in %r", ".".join(path), config_file)
+            logger.debug("%r not found in %r", path, config_file)
 
 
 def write(config, path):

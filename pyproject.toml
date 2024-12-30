@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "the_conf"
-version = "1.0.2"
+version = "1.0.3"
 description = "Config build from multiple sources"
 authors = ["François Schmidts <francois@schmidts.fr>"]
 license = "GPLv3"

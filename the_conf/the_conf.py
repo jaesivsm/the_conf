@@ -1,7 +1,14 @@
 import logging
 import os
 
-from the_conf import command_line, files, interractive, node, utils
+from the_conf import (
+    command_line,
+    environement,
+    files,
+    interractive,
+    node,
+    utils,
+)
 
 logger = logging.getLogger(__name__)
 DEFAULT_ORDER = "cmd", "files", "env"
@@ -97,18 +104,31 @@ class TheConf(node.ConfNode):
             self._set_to_path(path, value, overwrite=True)
 
     def _load_env(self, environ=None):
-        if environ is None:
+        if environ is None:  # defaulting to os.environ
             environ = os.environ
+        # Extracting extra config files passed through environ
         for config_env_key in self._config_file_environ:
             if config_env_key in environ:
                 self._config_files.insert(0, environ[config_env_key])
+        # Extracting passkey passed through environ
         for passkey_env_key in self._passkey_environ:
             if passkey_env_key in environ:
                 self._passkey = environ[passkey_env_key]
+        # Extracting values present in environ matching a given path
         for path, _, _ in self._get_path_val_param():
-            env_key = "_".join(map(str.upper, path))
-            if env_key in environ:
-                self._set_to_path(path, environ[env_key], overwrite=True)
+            for (
+                actual_path,
+                environ_value,
+            ) in environement.iter_on_environ_from_path(path, environ):
+                self._set_to_path(actual_path, environ_value)
+        # Removing empty nodes that might have been created from malformed env
+        for path in environement.index_to_remove(self._get_path_val_param()):
+            obj = self
+            for part in path:
+                if isinstance(part, str):
+                    obj = getattr(obj, part)
+                else:
+                    obj.pop(part)
 
     def load(self):
         for order in self._source_order:

@@ -244,11 +244,13 @@ class ListNode(list, AbstractNode):
     def _get_path_val_param(self, absolute=True):
         path = self._path
         if self._children:
-            for child in self._children:
-                if self:
-                    for index, value in enumerate(self):
-                        yield from value._get_path_val_param()
-                else:
+            if self:
+                for index, child in enumerate(self):
+                    for path, value, params in child._get_path_val_param():
+                        path[path.index(Index)] = index
+                        yield path, value, params
+            else:
+                for child in self._children:
                     yield (
                         path + [Index, child],
                         NoValue,
@@ -280,7 +282,7 @@ class ListNode(list, AbstractNode):
             else:
                 self[path[0]] = value
         else:
-            if len(self) <= path[0]:
+            while len(self) <= path[0]:
                 node = deepcopy(self._template_node)
                 self.append(node)
             self[path[0]]._set_to_path(path[1:], value, overwrite)

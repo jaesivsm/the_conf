@@ -66,7 +66,9 @@ def yield_values_from_cmd(
     cmd_line_args, _ = parser.parse_known_args(opts)
     yield getattr(cmd_line_args, CONFIG_OPT_DEST)
     yield getattr(cmd_line_args, PASSKEY_OPT_DEST)
-    for path, _, _ in path_val_params:
+    for path, _, param in path_val_params:
+        if param.get("no_cmd"):
+            continue
         value = getattr(cmd_line_args, path_to_dest(path))
         if value is not None:
             yield path, value
