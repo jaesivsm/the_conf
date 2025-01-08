@@ -1,5 +1,4 @@
 import logging
-from copy import deepcopy
 from itertools import chain
 
 from the_conf.utils import TYPE_MAPPING, Index, NoValue
@@ -235,11 +234,13 @@ class ListNode(list, AbstractNode):
         AbstractNode.__init__(self, parameters, parent, name)
         list.__init__(self, *args, **kwargs)
         self._node_type = node_type or {}
-        if self._children:
-            parameters = [
-                {child: self._parameters[child]} for child in self._children
-            ]
-            self._template_node = ConfNode(parameters, parent=self, name=Index)
+
+    @property
+    def _template_node(self):
+        parameters = [
+            {child: self._parameters[child]} for child in self._children
+        ]
+        return ConfNode(parameters, parent=self, name=Index)
 
     def _get_path_val_param(self, absolute=True):
         path = self._path
@@ -268,7 +269,7 @@ class ListNode(list, AbstractNode):
             if not isinstance(value, self._node_type["type"]):
                 value = self._node_type["type"](value)
             return super().__setitem__(index, value)
-        node = deepcopy(self._template_node)
+        node = self._template_node
         for path, _, _ in node._get_path_val_param(absolute=False):
             for _, sub_value in extract_value(value, path):
                 node._set_to_path(path, sub_value)
@@ -283,6 +284,5 @@ class ListNode(list, AbstractNode):
                 self[path[0]] = value
         else:
             while len(self) <= path[0]:
-                node = deepcopy(self._template_node)
-                self.append(node)
+                self.append(self._template_node)
             self[path[0]]._set_to_path(path[1:], value, overwrite)
