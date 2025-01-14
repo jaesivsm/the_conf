@@ -73,7 +73,7 @@ def read(
         try:
             with open(path, "r", encoding=ENCODING) as fd:
                 payload = fd.read().strip()
-                if passkey is not None:
+                if passkey:
                     try:
                         payload = decrypt(payload, passkey)
                     except RuntimeError:
