@@ -66,7 +66,7 @@ class AbstractNode:
         if name in self._parameters:
             logger.debug("ignoring")
             return
-        has_default = bool(settings.get("default"))
+        has_default = bool("default" in settings)
         has_type = bool(settings.get("type"))
         # something smarter that'd allow custom type
         if has_default and not has_type:

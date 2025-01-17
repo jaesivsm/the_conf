@@ -116,6 +116,17 @@ class TestTheConfObj(TestCase):
         tc = TheConf(metaconf, environ={})
         self.assertFalse(tc.option)
 
+    def test_default_cast_type(self):
+        metaconf = {
+            "parameters": [{"option": {"default": 0}}],
+            "source_order": ["env"],
+            "config_files": [],
+        }
+        tc = TheConf(metaconf, environ={})
+        assert 0 == tc.option
+        tc = TheConf(metaconf, environ={'OPTION': '1'})
+        assert 1 == tc.option
+
     def test_set_to_path(self):
         metaconf = {
             "parameters": [{"option": {"type": int, "default": 1}}],
