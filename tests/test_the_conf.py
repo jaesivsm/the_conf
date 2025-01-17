@@ -127,6 +127,17 @@ class TestTheConfObj(TestCase):
         tc = TheConf(metaconf, environ={'OPTION': '1'})
         assert 1 == tc.option
 
+    def test_env_var_with_underscore(self):
+        metaconf = {
+            "parameters": [{"eki": [{'eki_patang': {"default": 0}}]}],
+            "source_order": ["env"],
+            "config_files": [],
+        }
+        tc = TheConf(metaconf, environ={})
+        assert 0 == tc.eki.eki_patang
+        tc = TheConf(metaconf, environ={'EKI_EKI_PATANG': '1'})
+        assert 1 == tc.eki.eki_patang
+
     def test_set_to_path(self):
         metaconf = {
             "parameters": [{"option": {"type": int, "default": 1}}],
