@@ -1,4 +1,4 @@
-from unittest import TestCase
+from unittest import TestCase, mock
 
 from the_conf import TheConf
 
@@ -124,18 +124,18 @@ class TestTheConfObj(TestCase):
         }
         tc = TheConf(metaconf, environ={})
         assert 0 == tc.option
-        tc = TheConf(metaconf, environ={'OPTION': '1'})
+        tc = TheConf(metaconf, environ={"OPTION": "1"})
         assert 1 == tc.option
 
     def test_env_var_with_underscore(self):
         metaconf = {
-            "parameters": [{"eki": [{'eki_patang': {"default": 0}}]}],
+            "parameters": [{"eki": [{"eki_patang": {"default": 0}}]}],
             "source_order": ["env"],
             "config_files": [],
         }
         tc = TheConf(metaconf, environ={})
         assert 0 == tc.eki.eki_patang
-        tc = TheConf(metaconf, environ={'EKI_EKI_PATANG': '1'})
+        tc = TheConf(metaconf, environ={"EKI_EKI_PATANG": "1"})
         assert 1 == tc.eki.eki_patang
 
     def test_set_to_path(self):
@@ -150,3 +150,63 @@ class TestTheConfObj(TestCase):
         self.assertEqual(2, tc.option)
         del tc.option
         self.assertEqual(1, tc.option)
+
+    @mock.patch("the_conf.files.open")
+    def test_bool_from_str(self, yaml_load):
+        yaml_load.return_value.__enter__.return_value.read.return_value = (
+            "boolean: bla"
+        )
+        metaconf = {
+            "source_order": ["files"],
+            "config_files": ["bla.yml"],
+            "parameters": [{"boolean": {"type": bool, "default": False}}],
+        }
+        tc = TheConf(metaconf)
+        assert tc.boolean is True
+        tc.boolean = ""
+        assert tc.boolean is False
+
+    @mock.patch("the_conf.files.open")
+    def test_bool_from_none(self, yaml_load):
+        yaml_load.return_value.__enter__.return_value.read.return_value = (
+            "boolean: null"
+        )
+        metaconf = {
+            "source_order": ["files"],
+            "config_files": ["bla.yml"],
+            "parameters": [{"boolean": {"type": bool, "default": True}}],
+        }
+        tc = TheConf(metaconf)
+        assert tc.boolean is False
+        tc.boolean = None
+        assert tc.boolean is False
+
+    @mock.patch("the_conf.files.open")
+    def test_bool_from_int(self, yaml_load):
+        yaml_load.return_value.__enter__.return_value.read.return_value = (
+            "boolean: 2"
+        )
+        metaconf = {
+            "source_order": ["files"],
+            "config_files": ["bla.yml"],
+            "parameters": [{"boolean": {"type": bool, "default": False}}],
+        }
+        tc = TheConf(metaconf)
+        assert tc.boolean is True
+        tc.boolean = 1
+        assert tc.boolean is True
+
+    @mock.patch("the_conf.files.open")
+    def test_bool_from_zero(self, yaml_load):
+        yaml_load.return_value.__enter__.return_value.read.return_value = (
+            "boolean: 0"
+        )
+        metaconf = {
+            "source_order": ["files"],
+            "config_files": ["bla.yml"],
+            "parameters": [{"boolean": {"type": bool, "default": True}}],
+        }
+        tc = TheConf(metaconf)
+        assert tc.boolean is False
+        tc.boolean = 0.0
+        assert tc.boolean is False
