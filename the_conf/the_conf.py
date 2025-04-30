@@ -79,7 +79,7 @@ class TheConf(node.ConfNode):
         self.load()
 
     def _load_files(self):
-        if self._config_files is None:
+        if not self._config_files:
             return
         for conf_file, config in files.read(self._config_files, self._passkey):
             paths = list(path for path, _, _ in self._get_path_val_param())
