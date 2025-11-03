@@ -84,7 +84,15 @@ class TheConf(node.ConfNode):
         for conf_file, config in files.read(self._config_files, self._passkey):
             paths = list(path for path, _, _ in self._get_path_val_param())
             for path, value in files.extract_values(paths, config, conf_file):
-                self._set_to_path(path, value, overwrite=True)
+                try:
+                    self._set_to_path(path, value, overwrite=True)
+                except Exception as error:
+                    logger.exception(
+                        "failed to write path %r=%r from file %r",
+                        ".".join(path),
+                        value,
+                        conf_file,
+                    )
 
     def _load_cmd(self, opts=None):
         gen = command_line.yield_values_from_cmd(
