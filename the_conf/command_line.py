@@ -1,6 +1,8 @@
 from typing import Union, Tuple, Set, List
 from argparse import ArgumentParser
 
+from the_conf.utils import Index
+
 CONFIG_OPT_DEST = "config_file_path"
 PASSKEY_OPT_DEST = "passkey"
 OPTS_TYPE = Union[Tuple[str, ...], List[str], Set[str]]
@@ -31,6 +33,9 @@ def get_parser(
     for path, _, param in path_n_params:
         parser_kw = {}
 
+        # Skip list options (paths containing Index) as they're not supported on cmd line
+        if Index in path:
+            continue
         if param.get("no_cmd"):
             continue
         flag = (
@@ -67,6 +72,9 @@ def yield_values_from_cmd(
     yield getattr(cmd_line_args, CONFIG_OPT_DEST)
     yield getattr(cmd_line_args, PASSKEY_OPT_DEST)
     for path, _, param in path_val_params:
+        # Skip list options (paths containing Index) as they're not supported on cmd line
+        if Index in path:
+            continue
         if param.get("no_cmd"):
             continue
         value = getattr(cmd_line_args, path_to_dest(path))
