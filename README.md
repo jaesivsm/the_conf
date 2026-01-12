@@ -1,66 +1,254 @@
+# the_conf
+
 [![Build Status](https://travis-ci.org/jaesivsm/the_conf.svg?branch=master)](https://travis-ci.org/jaesivsm/the_conf) [![Coverage Status](https://coveralls.io/repos/github/jaesivsm/the_conf/badge.svg?branch=master)](https://coveralls.io/github/jaesivsm/the_conf?branch=master)
 
-From [this](http://sametmax.com/les-plus-grosses-roues-du-monde/)
+A Python configuration management library that merges values from multiple sources (files, command line, environment variables) with schema validation and configurable priority ordering.
 
-    Une bonne lib de conf doit:
+## Installation
 
-    * Offrir une API standardisée pour définir les paramètres qu’attend son programme sous la forme d’un schéma de données.
-    * Permettre de générer depuis ce schéma les outils de parsing de la ligne de commande et des variables d’env.
-    * Permettre de générer depuis ce schéma des validateurs pour ces schémas.
-    * Permettre de générer des API pour modifier la conf.
-    * Permettre de générer des UIs pour modifier la conf.
-    * Séparer la notion de configuration du programme des paramètres utilisateurs.
-    * Pouvoir marquer des settings en lecture seule, ou des permissions sur les settings.
-    * Notifier le reste du code (ou des services) qu’une valeur à été modifiée. Dispatching, quand tu nous tiens…
-    * Charger les settings depuis une source compatible (bdd, fichier, api, service, etc).
-    * Permettre une hiérarchie de confs, avec une conf principale, des enfants, des enfants d’enfants, etc. et la récupération de la valeur qui cascade le long de cette hiérarchie. Un code doit pouvoir plugger sa conf dans une branche de l’arbre à la volée.
-    * Fournir un service de settings pour les architectures distribuées.
-    * Etre quand même utile et facile pour les tous petits scripts.
-    * Auto documentation des settings.
-
-
-Beforehand: for more clarity ```the_conf``` will designate the current program, its configuration will be referred to as the _meta conf_ and the configurations it will absorb (files / cmd line / environ) simply as the _configurations_.
-
-# 1. read the _meta conf_
-
-```the_conf``` should provide a singleton.
-On instantiation the singleton would read the _meta conf_ (its configuration) from a file. YML and JSON will be considered first. This file will provide names, types, default values and if needed validator for options.
-
-```the_conf``` will the validate the conf file. For each config value :
- * if value has _choices_ and _default value_, _default value_ has to be among _choices_.
- * if the value is nested, a node can't hold anything else than values
- * _required_ values can't have default
-
-# 2. read the _configurations_
-
-Once the _meta conf_ has been processed, ```the_conf``` will assemble all values at its reach from several sources.
-Three types are to be considered:
- * files (again YML/JSON but maybe also later ini)
- * command line
- * environ
-in this order of importance. This order must be itself overridable. ```the_conf``` must provide a backend for values from the configuration to be reached.
-
-```python
-the_conf.load('path/to/meta/conf.yml')
-the_conf.nested.value
-> 1
+```bash
+pip install the_conf
+# or
+poetry add the_conf
 ```
 
-Upon reading _configurations_, ```the_conf``` will validate gathered values.
- * _configurations_ file type will be guessed from file extention (yaml / yml, json, ini), anything else must raise an error. Parsing errors won't also be silenced. Although, missing won't be an issue as long as all required values are gathered.
- * values must be in the type there declared in or cast to it without error
- * required values must be provided
- * if a value is configured with _choices_, the gathered value must be in _choices_
+## Quick Start
 
-The first writable, readable available _configuration_ file found will be set as the main. Values will be edited on it but values from it will still be overridden according to the priorities. A warning should be issued if the main _configuration_ is overriddable.
-If no suitable file is found, a warning should also be issued ; edition will be impossible and will generate an error.
+### 1. Define a Meta Configuration (Schema)
 
-# 3. generate the _configurations_
+Create a YAML file defining your configuration schema (`myapp.meta.yml`):
 
-Provide an API to list and validate values needed from the _configurations_ (the required ones).
-Provide a command line UI to process that list to let a user generate a _configuration_ file.
+```yaml
+source_order: ['env', 'files', 'cmd']  # Priority order (first wins)
+config_files: ['config.yml']
 
-# 4. write the _configurations_
+parameters:
+  - database_url:
+      type: str
+      required: true
+      help_txt: Database connection string
+  - debug:
+      type: bool
+      default: false
+  - max_connections:
+      type: int
+      default: 10
+      among: [5, 10, 20, 50]  # Valid choices
+  - nested:
+    - timeout:
+        type: int
+        default: 30
+```
 
-Depending on the permissions set in the _meta conf_, ```the_conf``` must allow to edit the values in the configuration file set as _main_ on read phase.
-If editing a value which will be ignored for being overriden, a warning must be issued.
+### 2. Load Configuration
+
+```python
+from the_conf import TheConf
+
+# Load meta configuration and gather values from all sources
+conf = TheConf('myapp.meta.yml')
+
+# Access values
+print(conf.database_url)
+print(conf.debug)
+print(conf.nested.timeout)
+
+# Modify values (writes to main config file)
+conf.max_connections = 20
+conf.write()
+```
+
+### 3. Provide Values from Different Sources
+
+**From environment variables:**
+```bash
+export DATABASE_URL="postgresql://localhost/mydb"
+export NESTED_TIMEOUT="60"
+```
+
+**From config file** (`config.yml`):
+```yaml
+database_url: postgresql://localhost/mydb
+debug: true
+nested:
+  timeout: 45
+```
+
+**From command line:**
+```bash
+python myapp.py --database-url postgresql://localhost/mydb --debug --nested-timeout 60
+```
+
+## Source Priority System
+
+The `source_order` defines which source takes precedence when the same parameter is provided from multiple sources. **The first source in the list wins** - later sources do not overwrite values from earlier sources.
+
+**Default order:** `["cmd", "files", "env"]` (command line > files > environment)
+
+**Example with `source_order: ["env", "files", "cmd"]`:**
+- If `DEBUG` is set in environment variables, the value from config files or command line will be **ignored**
+- This is useful when you want environment variables (e.g., in containers) to always take precedence
+
+## Parameter Options
+
+- `type`: `str`, `int`, `bool`, `list`, `dict`
+- `default`: Default value (cannot be combined with `required`)
+- `required`: Must be provided from at least one source
+- `among`: List of valid choices
+- `read_only`: Prevents modification after initial load
+- `no_cmd`: Exclude this parameter from command line parsing
+- `no_env`: Exclude this parameter from environment variable parsing
+- `cmd_line_opt`: Override the auto-generated command line flag
+- `help_txt`: Help text for documentation and CLI
+
+## List Parameters
+
+### Simple Lists
+
+```yaml
+parameters:
+  - allowed_ips:
+      type: list
+      allowed_ips: {type: str}
+```
+
+**From environment:**
+```bash
+export ALLOWED_IPS_0="192.168.1.1"
+export ALLOWED_IPS_1="192.168.1.2"
+```
+
+**From file:**
+```yaml
+allowed_ips:
+  - 192.168.1.1
+  - 192.168.1.2
+```
+
+**In Python:**
+```python
+conf.allowed_ips.append("192.168.1.3")
+print(conf.allowed_ips[0])  # 192.168.1.1
+```
+
+### Complex Lists (Lists of Dicts)
+
+```yaml
+parameters:
+  - servers:
+      type: list
+      servers:
+        - host: {type: str}
+        - port: {type: int}
+```
+
+**From environment:**
+```bash
+export SERVERS_0_HOST="localhost"
+export SERVERS_0_PORT="8080"
+export SERVERS_1_HOST="remote.host"
+export SERVERS_1_PORT="8081"
+```
+
+**From file:**
+```yaml
+servers:
+  - host: localhost
+    port: 8080
+  - host: remote.host
+    port: 8081
+```
+
+**In Python:**
+```python
+print(conf.servers[0].host)  # localhost
+print(conf.servers[0].port)  # 8080
+```
+
+**Note:** List parameters are not available via command line arguments due to technical limitations.
+
+## File Encryption
+
+`the_conf` supports encrypted configuration files using AES encryption:
+
+```python
+# Save encrypted config
+conf = TheConf('myapp.meta.yml')
+conf.database_password = "secret"
+conf.write('config.yml', passkey='my-encryption-key')
+
+# Load encrypted config
+conf = TheConf('myapp.meta.yml', passkey='my-encryption-key')
+```
+
+Or via command line/environment:
+```bash
+python myapp.py --passkey my-encryption-key
+# or
+export THECONF_PASSKEY="my-encryption-key"
+```
+
+## Nested Configuration
+
+Create hierarchical configuration structures:
+
+```yaml
+parameters:
+  - database:
+    - host: {type: str, default: localhost}
+    - port: {type: int, default: 5432}
+    - credentials:
+      - username: {type: str}
+      - password: {type: str}
+```
+
+Access with dot notation:
+```python
+conf.database.host
+conf.database.credentials.username
+```
+
+## Interactive Configuration Generation
+
+Use the interactive mode to generate configuration files:
+
+```python
+conf = TheConf('myapp.meta.yml', prompt_values=True)
+# Prompts user for required values and generates config file
+```
+
+## Design Philosophy
+
+From [this article](http://sametmax.com/les-plus-grosses-roues-du-monde/), a good configuration library should:
+
+- Provide a standardized API to define parameters via a data schema
+- Generate command line and environment variable parsers from the schema
+- Generate validators from the schema
+- Separate program configuration from user parameters
+- Support read-only settings and permissions
+- Load settings from compatible sources (database, files, APIs, services)
+- Support configuration hierarchies with cascading value retrieval
+- Be simple enough for small scripts yet powerful for complex applications
+- Auto-document settings
+
+## Terminology
+
+- **Meta Configuration**: The schema file (YAML/JSON) that defines parameter names, types, defaults, and validators
+- **User Configuration**: The actual values loaded from files, command line, or environment variables
+
+## Development
+
+```bash
+# Run tests
+make test
+
+# Run linters
+make lint
+
+# Build package
+make build
+```
+
+## License
+
+GPLv3 - See LICENSE file for details
