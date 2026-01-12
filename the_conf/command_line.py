@@ -33,7 +33,7 @@ def get_parser(
     for path, _, param in path_n_params:
         parser_kw = {}
 
-        # Skip list options (paths containing Index) as they're not supported on cmd line
+        # List options (paths with Index) not supported on cmd line
         if Index in path:
             continue
         if param.get("no_cmd"):
@@ -72,7 +72,7 @@ def yield_values_from_cmd(
     yield getattr(cmd_line_args, CONFIG_OPT_DEST)
     yield getattr(cmd_line_args, PASSKEY_OPT_DEST)
     for path, _, param in path_val_params:
-        # Skip list options (paths containing Index) as they're not supported on cmd line
+        # List options (paths with Index) not supported on cmd line
         if Index in path:
             continue
         if param.get("no_cmd"):

@@ -33,6 +33,34 @@ poetry run pycodestyle the_conf
 poetry run black --check the_conf
 ```
 
+## Code Style Requirements
+
+This project enforces strict code style with automated linting:
+
+### Line Length
+- **Maximum 79 characters per line** (pycodestyle E501)
+- Configured in `pyproject.toml` with `line-length = 79` for black
+- This includes comments - keep them concise
+- Example violation: `# Skip list options (paths containing Index) as they're not supported on cmd line` (89 chars)
+- Fixed version: `# List options (paths with Index) not supported on cmd line` (67 chars)
+
+### Formatting
+- **Black formatter** with Python 3.9+ target
+- Run `poetry run black the_conf` to auto-format
+- All code must pass `black --check` before committing
+
+### Type Checking
+- **mypy** for static type checking
+- All code must be type-safe
+- Use type hints for function parameters and return values
+
+### Style Checking
+- **pycodestyle** (formerly pep8) for PEP 8 compliance
+- Checks indentation, whitespace, naming conventions
+- Must pass with zero violations
+
+**Before committing:** Always run `make lint` to ensure all checks pass.
+
 ### Build & Deploy
 ```bash
 # Build distribution (runs lint and test first)
