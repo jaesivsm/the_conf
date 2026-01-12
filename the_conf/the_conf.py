@@ -85,7 +85,7 @@ class TheConf(node.ConfNode):
             paths = list(path for path, _, _ in self._get_path_val_param())
             for path, value in files.extract_values(paths, config, conf_file):
                 try:
-                    self._set_to_path(path, value, overwrite=True)
+                    self._set_to_path(path, value, overwrite=False)
                 except Exception as error:
                     logger.exception(
                         "failed to write path %r=%r from file %r",
@@ -109,7 +109,7 @@ class TheConf(node.ConfNode):
             self._passkey = passkey
 
         for path, value in gen:
-            self._set_to_path(path, value, overwrite=True)
+            self._set_to_path(path, value, overwrite=False)
 
     def _load_env(self, environ=None):
         if environ is None:  # defaulting to os.environ

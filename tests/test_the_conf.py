@@ -210,3 +210,66 @@ class TestTheConfObj(TestCase):
         assert tc.boolean is False
         tc.boolean = 0.0
         assert tc.boolean is False
+
+    def test_source_priority_env_then_files(self):
+        """Test that when env is loaded first, files should not overwrite it"""
+        import tempfile
+        import os
+
+        # Create a temp config file
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yml', delete=False) as f:
+            f.write("option: from_file\n")
+            config_file = f.name
+
+        try:
+            metaconf = {
+                "parameters": [{"option": {"type": str}}],
+                "source_order": ["env", "files"],
+                "config_files": [config_file],
+            }
+            # Env provides the value first
+            tc = TheConf(metaconf, environ={"OPTION": "from_env"})
+            # The value should remain from env, not overwritten by files
+            assert tc.option == "from_env"
+        finally:
+            os.unlink(config_file)
+
+    @mock.patch("the_conf.files.open")
+    def test_source_priority_env_then_cmd(self, mock_open):
+        """Test that when env is loaded first, cmd should not overwrite it"""
+        metaconf = {
+            "parameters": [{"option": {"type": str}}],
+            "source_order": ["env", "cmd"],
+            "config_files": [],
+        }
+        # Env provides the value first
+        tc = TheConf(metaconf, environ={"OPTION": "from_env"}, cmd_line_opts=["--option=from_cmd"])
+        # The value should remain from env, not overwritten by cmd
+        assert tc.option == "from_env"
+
+    def test_multiple_config_files_priority(self):
+        """Test priority when loading multiple config files"""
+        import tempfile
+        import os
+
+        # Create two temp config files
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yml', delete=False) as f:
+            f.write("option: from_first\n")
+            first_file = f.name
+
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.yml', delete=False) as f:
+            f.write("option: from_second\n")
+            second_file = f.name
+
+        try:
+            metaconf = {
+                "parameters": [{"option": {"type": str}}],
+                "source_order": ["files"],
+                "config_files": [first_file, second_file],
+            }
+            tc = TheConf(metaconf)
+            # First file in the list should have priority
+            assert tc.option == "from_first"
+        finally:
+            os.unlink(first_file)
+            os.unlink(second_file)
