@@ -28,7 +28,7 @@ pylint = "*"
 mypy = "*"
 flake8 = "*"
 types-pyyaml = "^6.0.12.12"
-black = "^23.11.0"
+black = ">=23.11,<25.0"
 isort = "^5.12.0"
 
 [tool.poetry.group.test.dependencies]
